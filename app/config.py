@@ -28,7 +28,7 @@ class Settings:
 @lru_cache
 def get_settings() -> Settings:
     return Settings(
-        database_url=os.getenv("DATABASE_URL", "sqlite:///./docudiff.db"),
+        database_url=os.getenv("DATABASE_URL", "sqlite:///./clauselens.db"),
         upload_dir=Path(os.getenv("UPLOAD_DIR", "./uploads")),
         max_upload_bytes=int(os.getenv("MAX_UPLOAD_BYTES", "5242880")),
         max_extracted_chars=int(os.getenv("MAX_EXTRACTED_CHARS", "500000")),

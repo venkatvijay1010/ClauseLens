@@ -44,7 +44,7 @@ def _runtime_dir() -> Path:
 def test_document_version_comparison_review_and_evaluation_flow() -> None:
     runtime_dir = _runtime_dir()
     app = create_app(
-        f"sqlite:///{runtime_dir / 'docudiff.db'}",
+        f"sqlite:///{runtime_dir / 'clauselens.db'}",
         settings=build_settings(runtime_dir),
         create_schema_for_tests=True,
     )
@@ -115,7 +115,7 @@ def test_document_version_comparison_review_and_evaluation_flow() -> None:
 def test_browser_demo_assets_are_served() -> None:
     runtime_dir = _runtime_dir()
     app = create_app(
-        f"sqlite:///{runtime_dir / 'docudiff.db'}",
+        f"sqlite:///{runtime_dir / 'clauselens.db'}",
         settings=build_settings(runtime_dir),
         create_schema_for_tests=True,
     )
@@ -124,7 +124,7 @@ def test_browser_demo_assets_are_served() -> None:
         script = client.get("/static/app.js")
 
     assert home.status_code == 200
-    assert "DocuDiff" in home.text
+    assert "ClauseLens" in home.text
     assert script.status_code == 200
     assert "Creating document versions" in script.text
 
@@ -133,7 +133,7 @@ def test_app_selects_ollama_provider_without_requiring_an_api_key() -> None:
     runtime_dir = _runtime_dir()
     settings = replace(build_settings(runtime_dir), llm_provider="ollama")
     app = create_app(
-        f"sqlite:///{runtime_dir / 'docudiff.db'}",
+        f"sqlite:///{runtime_dir / 'clauselens.db'}",
         settings=settings,
         create_schema_for_tests=True,
     )
@@ -149,7 +149,7 @@ def test_health_reports_when_a_missing_openai_key_uses_the_heuristic_adapter() -
     runtime_dir = _runtime_dir()
     settings = replace(build_settings(runtime_dir), llm_provider="openai", openai_api_key=None)
     app = create_app(
-        f"sqlite:///{runtime_dir / 'docudiff.db'}",
+        f"sqlite:///{runtime_dir / 'clauselens.db'}",
         settings=settings,
         create_schema_for_tests=True,
     )
@@ -164,7 +164,7 @@ def test_health_reports_when_a_missing_openai_key_uses_the_heuristic_adapter() -
 def test_cross_document_comparisons_are_rejected() -> None:
     runtime_dir = _runtime_dir()
     app = create_app(
-        f"sqlite:///{runtime_dir / 'docudiff.db'}",
+        f"sqlite:///{runtime_dir / 'clauselens.db'}",
         settings=build_settings(runtime_dir),
         create_schema_for_tests=True,
     )
@@ -191,7 +191,7 @@ def test_cross_document_comparisons_are_rejected() -> None:
 def test_text_file_upload_and_unsupported_extension_handling() -> None:
     runtime_dir = _runtime_dir()
     app = create_app(
-        f"sqlite:///{runtime_dir / 'docudiff.db'}",
+        f"sqlite:///{runtime_dir / 'clauselens.db'}",
         settings=build_settings(runtime_dir),
         create_schema_for_tests=True,
     )
@@ -229,7 +229,7 @@ def test_section_and_raw_request_body_limits_are_enforced() -> None:
         max_upload_bytes=128,
     )
     app = create_app(
-        f"sqlite:///{runtime_dir / 'docudiff.db'}",
+        f"sqlite:///{runtime_dir / 'clauselens.db'}",
         settings=settings,
         create_schema_for_tests=True,
     )
@@ -293,7 +293,7 @@ def test_remote_assessment_calls_are_bounded_per_comparison() -> None:
     runtime_dir = _runtime_dir()
     settings = replace(build_settings(runtime_dir), max_assessment_calls=1)
     app = create_app(
-        f"sqlite:///{runtime_dir / 'docudiff.db'}",
+        f"sqlite:///{runtime_dir / 'clauselens.db'}",
         settings=settings,
         create_schema_for_tests=True,
     )
@@ -334,7 +334,7 @@ def test_remote_assessment_calls_are_bounded_per_comparison() -> None:
 def test_unavailable_model_is_tried_once_then_the_comparison_falls_back() -> None:
     runtime_dir = _runtime_dir()
     app = create_app(
-        f"sqlite:///{runtime_dir / 'docudiff.db'}",
+        f"sqlite:///{runtime_dir / 'clauselens.db'}",
         settings=build_settings(runtime_dir),
         create_schema_for_tests=True,
     )

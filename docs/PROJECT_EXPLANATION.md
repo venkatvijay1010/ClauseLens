@@ -1,10 +1,10 @@
-# DocuDiff: project explanation from scratch
+# ClauseLens: project explanation from scratch
 
 ## 1. Problem
 
 Document changes are easy to make and hard to review. A raw redline shows that text moved or changed, but it does not help a reviewer quickly identify the changes most likely to affect payment, privacy, termination rights, deadlines, or customer obligations.
 
-DocuDiff is a small, production-minded change-review assistant. A reviewer supplies a baseline and revised version of the same document. The application identifies added, removed, modified, and moved sections, ranks their likely significance, and shows exact before/after evidence.
+ClauseLens is a small, production-minded change-review assistant. A reviewer supplies a baseline and revised version of the same document. The application identifies added, removed, modified, and moved sections, ranks their likely significance, and shows exact before/after evidence.
 
 It is designed for neutral document types such as SaaS terms, privacy notices, vendor agreements, and employee handbooks. It intentionally does not claim legal or compliance correctness.
 
@@ -15,14 +15,14 @@ Primary users are operations, procurement, compliance, HR, or product reviewers 
 1. The reviewer creates a document and uploads or pastes version `v1`.
 2. The reviewer adds `v2` to the same document record.
 3. The reviewer creates a comparison.
-4. DocuDiff calculates a deterministic change set, then sends only changed excerpts to an assessment provider.
+4. ClauseLens calculates a deterministic change set, then sends only changed excerpts to an assessment provider.
 5. The reviewer filters high-severity or privacy-related changes, reads exact before/after excerpts, and records a review decision.
 
 The most important trust property is that the evidence comes from the stored versions, not from model-generated quotations.
 
 ## 3. Product boundary
 
-DocuDiff is not:
+ClauseLens is not:
 
 - a general document chatbot;
 - a RAG answer engine;
@@ -119,9 +119,9 @@ This validates the deterministic pipeline and no-key fallback. It does **not** e
 
 PolicyMind accepts a question, retrieves policy chunks with hybrid vector/BM25 search, and may route to a SQL or hybrid agent. Its output is an answer with citations.
 
-DocuDiff has a different input, control flow, output, and benchmark:
+ClauseLens has a different input, control flow, output, and benchmark:
 
-| Dimension | PolicyMind | DocuDiff |
+| Dimension | PolicyMind | ClauseLens |
 |---|---|---|
 | Input | Natural-language question | Version `v1` and `v2` of one document |
 | Core task | Answer grounded questions | Detect and prioritize text changes |
@@ -136,7 +136,7 @@ They share healthy backend fundamentals—FastAPI, PostgreSQL, Docker, testing, 
 
 The following are deliberately excluded from v1: OCR, scanned PDFs, cloud file connectors, authentication, teams/comments/notifications, multilingual models, unlimited document size, multi-version timelines, native redline export, automatic legal approval, external regulation lookup, queues, and vector search.
 
-pgvector can be added only after the core flow is stable for a small feature such as: “show previously reviewed, similar changes and their human decisions.” It should not turn DocuDiff into another RAG product.
+pgvector can be added only after the core flow is stable for a small feature such as: “show previously reviewed, similar changes and their human decisions.” It should not turn ClauseLens into another RAG product.
 
 ## 11. Delivery plan and definition of done
 

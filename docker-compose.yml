@@ -2,15 +2,15 @@ services:
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: docudiff
-      POSTGRES_PASSWORD: docudiff
-      POSTGRES_DB: docudiff
+      POSTGRES_USER: clauselens
+      POSTGRES_PASSWORD: clauselens
+      POSTGRES_DB: clauselens
     ports:
       - "5434:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - clauselens_postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U docudiff -d docudiff"]
+      test: ["CMD-SHELL", "pg_isready -U clauselens -d clauselens"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -20,7 +20,7 @@ services:
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgresql+psycopg://docudiff:docudiff@db:5432/docudiff
+      DATABASE_URL: postgresql+psycopg://clauselens:clauselens@db:5432/clauselens
       UPLOAD_DIR: /app/uploads
       # In-container localhost is not the Windows host. Override this only when needed.
       OLLAMA_BASE_URL: "${OLLAMA_DOCKER_BASE_URL:-http://host.docker.internal:11434}"
@@ -35,4 +35,4 @@ services:
         condition: service_healthy
 
 volumes:
-  postgres_data:
+  clauselens_postgres_data:

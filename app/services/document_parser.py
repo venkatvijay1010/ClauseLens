@@ -1,4 +1,4 @@
-"""Safe extraction for the deliberately small DocuDiff file-format surface."""
+"""Safe extraction for the deliberately small ClauseLens file-format surface."""
 
 from __future__ import annotations
 

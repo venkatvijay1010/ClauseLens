@@ -1,4 +1,4 @@
-"""DocuDiff application factory and static demo entry point."""
+"""ClauseLens application factory and static demo entry point."""
 
 from __future__ import annotations
 
@@ -58,7 +58,7 @@ def create_app(
         database.dispose()
 
     app = FastAPI(
-        title="DocuDiff",
+        title="ClauseLens",
         version="0.1.0",
         description="Evidence-backed document version comparison and change review.",
         lifespan=lifespan,

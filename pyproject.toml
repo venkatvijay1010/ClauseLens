@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "docudiff"
+name = "clauselens"
 version = "0.1.0"
 description = "Evidence-backed document version comparison and change-review assistant."
 readme = "README.md"

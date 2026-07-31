@@ -4,7 +4,7 @@
 
 These are **incremental learning estimates** for a backend engineer with roughly 1–1.5 years of experience. They overlap: do not add every row and conclude that the project requires 60+ hours of study before coding. Learn each topic while building its milestone, then reserve 50–60 total focused project hours for implementation, debugging, tests, demo polish, and documentation.
 
-| Technology / concept | Why it is used in DocuDiff | Incremental learning time | Difficulty | Typical local cost | Alternative considered / why not in v1 |
+| Technology / concept | Why it is used in ClauseLens | Incremental learning time | Difficulty | Typical local cost | Alternative considered / why not in v1 |
 |---|---|---:|---|---|---|
 | Python 3.11+ | Familiar, productive backend language and strong document/AI ecosystem | 0–2h if already using Python | Low | Free | Node/Java would work, but add unnecessary switching cost. |
 | FastAPI + Pydantic | Typed request/response contracts, validation, interactive API docs | 4–8h | Low–Medium | Free | Flask has less built-in schema ergonomics; Django is heavier than needed. |
@@ -56,7 +56,7 @@ There is no independent task requiring an autonomous planner or supervisor. A si
 
 ### Why not add vector search first?
 
-The user needs comparison, not retrieval. Vector search is a later enhancement for finding historic precedent; adding it to the MVP would blur DocuDiff’s distinction from a RAG application.
+The user needs comparison, not retrieval. Vector search is a later enhancement for finding historic precedent; adding it to the MVP would blur ClauseLens’s distinction from a RAG application.
 
 ### Why retain a heuristic provider?
 
@@ -64,4 +64,4 @@ It lets the repository, automated tests, demo, and evaluator run without secrets
 
 ## Interview-ready technology summary
 
-> “I built DocuDiff with FastAPI, PostgreSQL, SQLAlchemy, and Docker. The backend preserves immutable document versions, aligns their sections deterministically, and computes the diff before it asks a provider for a structured impact assessment. I can run the provider locally with Ollama and no API key, while retaining a deterministic fallback. I validate each displayed excerpt against stored source text, so the model cannot invent evidence.”
+> “I built ClauseLens with FastAPI, PostgreSQL, SQLAlchemy, and Docker. The backend preserves immutable document versions, aligns their sections deterministically, and computes the diff before it asks a provider for a structured impact assessment. I can run the provider locally with Ollama and no API key, while retaining a deterministic fallback. I validate each displayed excerpt against stored source text, so the model cannot invent evidence.”

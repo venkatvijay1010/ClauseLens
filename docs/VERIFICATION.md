@@ -1,6 +1,6 @@
 # Verification loop and current baseline
 
-DocuDiff was checked with the following repeatable loop:
+ClauseLens was checked with the following repeatable loop:
 
 ```text
 implementation review
@@ -71,6 +71,6 @@ That check is deliberately recorded separately because it requires a local Docke
 This is deliberately separate from CI: it needs a model download and a running local Ollama daemon.
 
 1. Run `ollama run gemma3` once, then set `LLM_PROVIDER=ollama` in `.env`.
-2. Start DocuDiff locally, or use Docker Compose with `OLLAMA_DOCKER_BASE_URL=http://host.docker.internal:11434`.
+2. Start ClauseLens locally, or use Docker Compose with `OLLAMA_DOCKER_BASE_URL=http://host.docker.internal:11434`.
 3. Run the browser comparison and confirm each assessment reports `provider: ollama`.
 4. Stop Ollama and repeat; the comparison must complete with `provider: heuristic:fallback`.

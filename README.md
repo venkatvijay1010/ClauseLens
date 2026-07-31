@@ -1,10 +1,10 @@
-# DocuDiff
+# ClauseLens
 
 **Evidence-backed document version comparison for reviewers.**
 
-DocuDiff compares two versions of the same text-based document, detects changes deterministically, and produces a reviewer-friendly report with exact before/after evidence. An optional structured LLM assessment explains the likely significance of each already-detected change; it never decides whether a change exists.
+ClauseLens compares two versions of the same text-based document, detects changes deterministically, and produces a reviewer-friendly report with exact before/after evidence. An optional structured LLM assessment explains the likely significance of each already-detected change; it never decides whether a change exists.
 
-> DocuDiff is review assistance, not legal, compliance, or policy-approval advice.
+> ClauseLens is review assistance, not legal, compliance, or policy-approval advice.
 
 ## Why this project
 
@@ -142,7 +142,7 @@ OLLAMA_BASE_URL=http://localhost:11434
 OLLAMA_MODEL=gemma3
 ```
 
-For Docker Compose, leave `OLLAMA_DOCKER_BASE_URL=http://host.docker.internal:11434` in `.env`. Compose passes that host address to the app container; it does not run a model container or download a multi-GB model. The `/health` endpoint reports both the configured and active provider; a real comparison confirms that the model and selected model name are available. If Ollama is stopped, unavailable, or returns invalid structured output, DocuDiff records a labelled heuristic fallback instead of losing the deterministic report.
+For Docker Compose, leave `OLLAMA_DOCKER_BASE_URL=http://host.docker.internal:11434` in `.env`. Compose passes that host address to the app container; it does not run a model container or download a multi-GB model. The `/health` endpoint reports both the configured and active provider; a real comparison confirms that the model and selected model name are available. If Ollama is stopped, unavailable, or returns invalid structured output, ClauseLens records a labelled heuristic fallback instead of losing the deterministic report.
 
 The native Ollama integration uses `/api/chat` with `stream: false`, a Pydantic JSON schema, and temperature `0`. It targets **local Ollama**; Ollama Cloud does not currently support structured outputs.
 
@@ -174,9 +174,9 @@ scripts/run_evaluation.py
 tests/
 ```
 
-## How DocuDiff differs from PolicyMind
+## How ClauseLens differs from PolicyMind
 
-PolicyMind is an insurance Q&A system that routes a natural-language question to hybrid retrieval, SQL, or both. DocuDiff accepts two document versions and runs a deterministic comparison pipeline before asking an LLM to classify only changed sections. It therefore demonstrates a different product workflow, data model, evaluation methodology, and AI-control strategy. Full rationale: [PROJECT_EXPLANATION.md](docs/PROJECT_EXPLANATION.md#how-it-differs-from-a-rag-project-like-policymind).
+PolicyMind is an insurance Q&A system that routes a natural-language question to hybrid retrieval, SQL, or both. ClauseLens accepts two document versions and runs a deterministic comparison pipeline before asking an LLM to classify only changed sections. It therefore demonstrates a different product workflow, data model, evaluation methodology, and AI-control strategy. Full rationale: [PROJECT_EXPLANATION.md](docs/PROJECT_EXPLANATION.md#how-it-differs-from-a-rag-project-like-policymind).
 
 ## GitHub-ready checklist
 

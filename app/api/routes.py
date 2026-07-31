@@ -1,4 +1,4 @@
-"""Versioned HTTP API for DocuDiff."""
+"""Versioned HTTP API for ClauseLens."""
 
 from __future__ import annotations
 
@@ -58,7 +58,7 @@ from app.services.comparison_service import (
 from app.services.document_parser import DocumentExtractionError, extract_document
 from app.services.evaluation import run_benchmark
 
-router = APIRouter(prefix="/api/v1", tags=["DocuDiff"])
+router = APIRouter(prefix="/api/v1", tags=["ClauseLens"])
 
 
 def get_db(request: Request) -> Iterator[Session]:

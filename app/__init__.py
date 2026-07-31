@@ -1,1 +1,1 @@
-"""DocuDiff application package."""
+"""ClauseLens application package."""

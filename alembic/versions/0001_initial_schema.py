@@ -1,4 +1,4 @@
-"""Initial immutable DocuDiff schema.
+"""Initial immutable ClauseLens schema.
 
 Revision ID: 0001_initial_schema
 Revises:
