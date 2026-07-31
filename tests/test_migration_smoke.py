@@ -1,18 +1,19 @@
 from pathlib import Path
 from uuid import uuid4
 
+from alembic.config import Config
 from fastapi.testclient import TestClient
 
 from alembic import command
-from alembic.config import Config
 from app.config import Settings
 from app.main import create_app
 
 
-def test_fresh_alembic_database_serves_the_api() -> None:
+def test_fresh_alembic_database_serves_the_api(monkeypatch) -> None:
     runtime_dir = Path("test-runtime") / uuid4().hex
     runtime_dir.mkdir(parents=True, exist_ok=False)
     database_url = f"sqlite:///{runtime_dir / 'migrated.db'}"
+    monkeypatch.setenv("DATABASE_URL", database_url)
     project_root = Path(__file__).resolve().parents[1]
     alembic_config = Config(str(project_root / "alembic.ini"))
     alembic_config.set_main_option("sqlalchemy.url", database_url)

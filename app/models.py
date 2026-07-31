@@ -18,20 +18,20 @@ class Base(DeclarativeBase):
     pass
 
 
-class ChangeType(str, enum.Enum):
+class ChangeType(enum.StrEnum):
     ADDED = "added"
     REMOVED = "removed"
     MODIFIED = "modified"
     MOVED = "moved"
 
 
-class Severity(str, enum.Enum):
+class Severity(enum.StrEnum):
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
 
 
-class ChangeCategory(str, enum.Enum):
+class ChangeCategory(enum.StrEnum):
     DEADLINE = "deadline"
     PAYMENT = "payment"
     PRIVACY = "privacy"
@@ -41,7 +41,7 @@ class ChangeCategory(str, enum.Enum):
     OTHER = "other"
 
 
-class ReviewStatus(str, enum.Enum):
+class ReviewStatus(enum.StrEnum):
     PENDING = "pending"
     REVIEWED = "reviewed"
     DISMISSED = "dismissed"
