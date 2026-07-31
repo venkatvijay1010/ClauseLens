@@ -12,7 +12,7 @@ Teams reviewing vendor terms, privacy notices, employee handbooks, or internal p
 
 This project intentionally differs from a RAG chatbot: its core input is **two document versions**, and its core output is a **ranked change report**, not an answer to a user question.
 
-## What it demonstrates
+## Core capabilities
 
 - FastAPI and Pydantic API design
 - PostgreSQL persistence and Alembic migrations
@@ -45,7 +45,7 @@ PostgreSQL report -> REST API / browser review screen
 
 ## Quick start
 
-### Option A — Docker (recommended portfolio demo)
+### Option A — Docker (recommended local demo)
 
 ```powershell
 Copy-Item .env.example .env
@@ -178,14 +178,14 @@ tests/
 
 PolicyMind is an insurance Q&A system that routes a natural-language question to hybrid retrieval, SQL, or both. ClauseLens accepts two document versions and runs a deterministic comparison pipeline before asking an LLM to classify only changed sections. It therefore demonstrates a different product workflow, data model, evaluation methodology, and AI-control strategy. Full rationale: [PROJECT_EXPLANATION.md](docs/PROJECT_EXPLANATION.md#how-it-differs-from-a-rag-project-like-policymind).
 
-## GitHub-ready checklist
+## Repository checklist
 
 - [x] Clean standalone project structure
 - [x] `.gitignore`, `.env.example`, Docker, Alembic, and MIT license
 - [x] Unit/integration tests and GitHub Actions CI
 - [x] Safe sample documents and no-key demo mode
 - [x] Architecture, learning, and verification documentation
-- [ ] Create an empty GitHub repository and add its remote
+- [x] Remote repository configured and `main` published
 
 ## Documentation
 

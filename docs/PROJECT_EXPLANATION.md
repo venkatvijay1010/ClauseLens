@@ -31,7 +31,7 @@ ClauseLens is not:
 - a document editor or PDF-redlining tool;
 - legal advice or an automated approval engine.
 
-Keeping this boundary makes the project finishable in 2–4 weeks and makes its portfolio story much clearer.
+Keeping this boundary makes the project finishable in 2–4 weeks and keeps the review workflow focused.
 
 ## 4. End-to-end architecture
 
