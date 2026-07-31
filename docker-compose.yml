@@ -22,10 +22,14 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg://docudiff:docudiff@db:5432/docudiff
       UPLOAD_DIR: /app/uploads
+      # In-container localhost is not the Windows host. Override this only when needed.
+      OLLAMA_BASE_URL: "${OLLAMA_DOCKER_BASE_URL:-http://host.docker.internal:11434}"
     ports:
       - "8001:8000"
     volumes:
       - ./uploads:/app/uploads
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       db:
         condition: service_healthy

@@ -18,6 +18,8 @@ class Settings:
     max_changed_sections: int
     max_assessment_calls: int
     llm_provider: str
+    ollama_base_url: str
+    ollama_model: str
     openai_api_key: str | None
     openai_model: str
     llm_timeout_seconds: float
@@ -34,6 +36,8 @@ def get_settings() -> Settings:
         max_changed_sections=int(os.getenv("MAX_CHANGED_SECTIONS", "100")),
         max_assessment_calls=int(os.getenv("MAX_ASSESSMENT_CALLS", "10")),
         llm_provider=os.getenv("LLM_PROVIDER", "heuristic").lower(),
+        ollama_base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
+        ollama_model=os.getenv("OLLAMA_MODEL", "gemma3"),
         openai_api_key=os.getenv("OPENAI_API_KEY") or None,
         openai_model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
         llm_timeout_seconds=float(os.getenv("LLM_TIMEOUT_SECONDS", "15")),

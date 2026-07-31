@@ -15,6 +15,7 @@ These are **incremental learning estimates** for a backend engineer with roughly
 | `pypdf` + `python-docx` | Extracts text from common text-native document formats | 3–5h | Medium | Free | OCR is intentionally excluded because it adds accuracy, privacy, and infrastructure risk. |
 | Heading-aware parsing | Preserves useful document structure before diffing | 3–5h | Medium | Free | Chunking by fixed tokens would look too similar to RAG and produces poor diffs. |
 | `difflib.SequenceMatcher` | Deterministic section/title matching and text similarity | 3–5h | Medium | Free | An embedding matcher is unnecessary before proving simple rules work. |
+| Ollama + local structured output | Runs an optional local model through a schema-constrained API without an API key | 1–3h | Low–Medium | Free; consumes local CPU/RAM/disk | A hosted API is simpler to deploy but is not needed for the core demo. |
 | Structured LLM outputs | Produces constrained category/severity/reasoning fields only after diffing | 4–8h | Medium | Low, based on changed excerpts | Free heuristic fallback is included for CI/demo; unconstrained chat output was rejected. |
 | Pydantic + citation validation | Rejects malformed model output and unverified evidence | 2–4h | Medium | Free | Trusting model-supplied quotes would weaken the main reliability claim. |
 | Vanilla JS/CSS demo UI | Lets a recruiter run a real comparison without learning the API first | 4–8h | Low–Medium | Free | React is a valid future upgrade, but a small UI is more realistic for this timeline. |
@@ -35,13 +36,13 @@ This order matters. The project remains useful even if no external LLM key is co
 
 | Factor | v1 decision | Impact |
 |---|---|---|
-| Local development | Docker + heuristic provider | Free except local machine resources. |
-| LLM calls | Send changed excerpts only; cap remote calls at 10 per comparison and fall back locally afterward | Keeps demo cost and latency bounded. |
+| Local development | Docker + heuristic provider, or FastAPI + local Ollama | Free except local machine resources. |
+| LLM calls | Send changed excerpts only; cap model calls at 10 per comparison and fall back locally afterward | Keeps demo cost and latency bounded. |
 | Database | Local PostgreSQL container | Free. |
 | File storage | Store text/content locally in demo | Free, but not production-grade. |
 | Hosting | Optional after the local demo works | Avoids premature cloud cost. |
 
-The MVP implements a per-comparison remote-call budget, maximum change count, and request timeout. Before public use, add dashboard logging, authentication/rate limits, and a spend alert as well.
+The MVP implements a per-comparison model-call budget, maximum change count, and request timeout. Before public use with a remote provider, add dashboard logging, authentication/rate limits, and a spend alert as well.
 
 ## Design decisions worth discussing in interviews
 
@@ -63,4 +64,4 @@ It lets the repository, automated tests, demo, and evaluator run without secrets
 
 ## Interview-ready technology summary
 
-> “I built DocuDiff with FastAPI, PostgreSQL, SQLAlchemy, and Docker. The backend preserves immutable document versions, aligns their sections deterministically, and computes the diff before it asks an LLM for a structured impact assessment. I validate each displayed excerpt against the stored source text, so the model cannot invent evidence. The project runs with a no-key fallback provider and has tests and a benchmark for change detection, alignment, severity labels, and citation validity.”
+> “I built DocuDiff with FastAPI, PostgreSQL, SQLAlchemy, and Docker. The backend preserves immutable document versions, aligns their sections deterministically, and computes the diff before it asks a provider for a structured impact assessment. I can run the provider locally with Ollama and no API key, while retaining a deterministic fallback. I validate each displayed excerpt against stored source text, so the model cannot invent evidence.”

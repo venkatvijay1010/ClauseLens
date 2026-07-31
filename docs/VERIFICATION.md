@@ -27,7 +27,7 @@ Latest validation during initial project creation:
 | Check | Result |
 |---|---|
 | Python syntax compilation | Passed |
-| Unit/integration tests | 19 passed |
+| Unit/integration tests | 25 passed |
 | Ruff lint | Passed |
 | Synthetic cases | 16 |
 | Labelled changes | 84 |
@@ -51,7 +51,9 @@ The benchmark is intentionally synthetic and deterministic. These values demonst
 - Scanned/image-only PDFs are explicitly out of scope for v1.
 - Raw HTTP body limits are enforced before multipart parsing, and DOCX archive expansion is bounded before document parsing.
 - Large unmatched section sets skip fuzzy alignment; document versions also have a hard section-count limit.
-- Remote assessment calls are bounded per comparison; the benchmark is always local/heuristic.
+- Model-backed assessment calls are bounded per comparison; the benchmark is always local/heuristic.
+- The native Ollama adapter sends a Pydantic JSON schema, disables streaming, validates the response, and falls back safely if a local daemon is unavailable.
+- Health reports both the configured provider and the active adapter, avoiding misleading success when a missing key triggers the heuristic fallback.
 
 ## Remaining manual release check
 
@@ -63,3 +65,12 @@ Before publishing to GitHub, run the Docker quick-start on a machine with Docker
 4. data remains after a container restart.
 
 That check is deliberately recorded separately because it requires a local Docker daemon and image pulls, which may not be available in every coding environment.
+
+## Optional local Ollama smoke test
+
+This is deliberately separate from CI: it needs a model download and a running local Ollama daemon.
+
+1. Run `ollama run gemma3` once, then set `LLM_PROVIDER=ollama` in `.env`.
+2. Start DocuDiff locally, or use Docker Compose with `OLLAMA_DOCKER_BASE_URL=http://host.docker.internal:11434`.
+3. Run the browser comparison and confirm each assessment reports `provider: ollama`.
+4. Stop Ollama and repeat; the comparison must complete with `provider: heuristic:fallback`.

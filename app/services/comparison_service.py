@@ -167,7 +167,8 @@ def create_or_get_comparison(
     )
     db.add(comparison)
     db.flush()
-    remote_assessment_calls = 0
+    model_assessment_calls = 0
+    model_provider_failed = False
     for display_order, candidate_diff in enumerate(candidates, 1):
         old_text = candidate_diff.baseline.content if candidate_diff.baseline else None
         new_text = candidate_diff.candidate.content if candidate_diff.candidate else None
@@ -190,7 +191,14 @@ def create_or_get_comparison(
         )
         db.add(change)
         db.flush()
-        if assessment_service.uses_remote_provider and remote_assessment_calls >= max_assessment_calls:
+        if assessment_service.uses_bounded_model_provider and model_provider_failed:
+            result = assessment_service.provider_failure_fallback(
+                candidate_diff.change_type, candidate_diff.heading, old_excerpt, new_excerpt
+            )
+        elif (
+            assessment_service.uses_bounded_model_provider
+            and model_assessment_calls >= max_assessment_calls
+        ):
             result = assessment_service.fallback_assessment(
                 candidate_diff.change_type, candidate_diff.heading, old_excerpt, new_excerpt
             )
@@ -198,8 +206,10 @@ def create_or_get_comparison(
             result = assessment_service.assess(
                 candidate_diff.change_type, candidate_diff.heading, old_excerpt, new_excerpt
             )
-            if assessment_service.uses_remote_provider:
-                remote_assessment_calls += 1
+            if assessment_service.uses_bounded_model_provider:
+                model_assessment_calls += 1
+                if result.validation_status == "fallback_after_provider_error":
+                    model_provider_failed = True
         evidence_valid = change_evidence_is_valid(
             change.old_text, change.old_excerpt, change.new_text, change.new_excerpt
         )

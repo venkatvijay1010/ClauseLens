@@ -15,6 +15,7 @@ from app.db import Database
 from app.request_limits import RequestBodyLimitMiddleware
 from app.services.assessment import (
     HeuristicAssessmentProvider,
+    OllamaAssessmentProvider,
     OpenAIAssessmentProvider,
     SafeAssessmentService,
 )
@@ -22,6 +23,13 @@ from app.services.assessment import (
 
 def _assessment_service(settings: Settings) -> SafeAssessmentService:
     fallback = HeuristicAssessmentProvider()
+    if settings.llm_provider == "ollama":
+        return SafeAssessmentService(
+            OllamaAssessmentProvider(
+                settings.ollama_base_url, settings.ollama_model, settings.llm_timeout_seconds
+            ),
+            fallback=fallback,
+        )
     if settings.llm_provider == "openai" and settings.openai_api_key:
         return SafeAssessmentService(
             OpenAIAssessmentProvider(
@@ -77,7 +85,11 @@ def create_app(
             request.app.state.db.healthcheck()
         except Exception as exc:
             raise HTTPException(status_code=503, detail="Database is unavailable.") from exc
-        return {"status": "ok", "assessment_provider": request.app.state.settings.llm_provider}
+        return {
+            "status": "ok",
+            "configured_assessment_provider": request.app.state.settings.llm_provider,
+            "assessment_provider": request.app.state.assessment_service.active_provider_name,
+        }
 
     return app
 

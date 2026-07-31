@@ -81,7 +81,7 @@ The assessment layer only adds a constrained interpretation:
 - concise summary and rationale;
 - whether human review is needed.
 
-This choice reduces cost, makes test results reproducible, and prevents a model from inventing that a text change exists. If the optional model provider fails, a local deterministic assessment fallback still returns a usable report.
+This choice reduces cost, makes test results reproducible, and prevents a model from inventing that a text change exists. The optional provider can be a local Ollama model with no API key or a remote OpenAI model. If it fails, a local deterministic assessment fallback still returns a usable report.
 
 ## 6. Data model
 
@@ -100,7 +100,7 @@ This choice reduces cost, makes test results reproducible, and prevents a model 
 
 Each change keeps the old/new source text, excerpt, source section, and associated version IDs. Before an assessment is persisted, the backend verifies that each excerpt maps to the source text after only whitespace normalization. The UI never relies on an LLM-supplied quotation or offset.
 
-MVP safety controls include an ASGI-level request-body limit, file/character/section/change-count limits, a PDF page cap, a DOCX archive-expansion cap, and rejection of unsupported, encrypted, malformed, or empty-text documents. Optional remote assessment is capped at 10 calls per comparison by default; any remaining change receives a labelled local fallback, and the benchmark never calls a remote provider. Uploaded document text should be treated as sensitive. The demo has no authentication; a real deployment would add identity, access control, encryption/storage policy, malware scanning, retention/deletion, a reverse-proxy body limit, isolated file parsing, rate limiting, and vendor privacy review.
+MVP safety controls include an ASGI-level request-body limit, file/character/section/change-count limits, a PDF page cap, a DOCX archive-expansion cap, and rejection of unsupported, encrypted, malformed, or empty-text documents. Optional model-backed assessment is capped at 10 calls per comparison by default; any remaining change receives a labelled local fallback, and the benchmark never calls a model provider. Local Ollama keeps the changed excerpts on the developer machine; a remote provider requires a separate privacy review. Uploaded document text should be treated as sensitive. The demo has no authentication; a real deployment would add identity, access control, encryption/storage policy, malware scanning, retention/deletion, a reverse-proxy body limit, isolated file parsing, rate limiting, and vendor privacy review.
 
 ## 8. Evaluation approach
 

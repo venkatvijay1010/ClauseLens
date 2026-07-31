@@ -7,7 +7,12 @@ from fastapi.testclient import TestClient
 from app.config import Settings
 from app.main import create_app
 from app.models import ChangeType
-from app.services.assessment import AssessmentPayload, AssessmentResult, SafeAssessmentService
+from app.services.assessment import (
+    AssessmentPayload,
+    AssessmentResult,
+    OllamaAssessmentProvider,
+    SafeAssessmentService,
+)
 
 RUNTIME_ROOT = Path("test-runtime")
 
@@ -22,6 +27,8 @@ def build_settings(runtime_dir: Path) -> Settings:
         max_changed_sections=100,
         max_assessment_calls=10,
         llm_provider="heuristic",
+        ollama_base_url="http://localhost:11434",
+        ollama_model="gemma3",
         openai_api_key=None,
         openai_model="unused",
         llm_timeout_seconds=1.0,
@@ -122,6 +129,38 @@ def test_browser_demo_assets_are_served() -> None:
     assert "Creating document versions" in script.text
 
 
+def test_app_selects_ollama_provider_without_requiring_an_api_key() -> None:
+    runtime_dir = _runtime_dir()
+    settings = replace(build_settings(runtime_dir), llm_provider="ollama")
+    app = create_app(
+        f"sqlite:///{runtime_dir / 'docudiff.db'}",
+        settings=settings,
+        create_schema_for_tests=True,
+    )
+
+    assert isinstance(app.state.assessment_service.provider, OllamaAssessmentProvider)
+    with TestClient(app) as client:
+        health = client.get("/health")
+    assert health.json()["configured_assessment_provider"] == "ollama"
+    assert health.json()["assessment_provider"] == "ollama"
+
+
+def test_health_reports_when_a_missing_openai_key_uses_the_heuristic_adapter() -> None:
+    runtime_dir = _runtime_dir()
+    settings = replace(build_settings(runtime_dir), llm_provider="openai", openai_api_key=None)
+    app = create_app(
+        f"sqlite:///{runtime_dir / 'docudiff.db'}",
+        settings=settings,
+        create_schema_for_tests=True,
+    )
+
+    with TestClient(app) as client:
+        health = client.get("/health")
+
+    assert health.json()["configured_assessment_provider"] == "openai"
+    assert health.json()["assessment_provider"] == "heuristic"
+
+
 def test_cross_document_comparisons_are_rejected() -> None:
     runtime_dir = _runtime_dir()
     app = create_app(
@@ -215,7 +254,7 @@ def test_section_and_raw_request_body_limits_are_enforced() -> None:
 
 
 class CountingRemoteProvider:
-    is_remote = True
+    requires_assessment_budget = True
 
     def __init__(self) -> None:
         self.calls = 0
@@ -235,6 +274,19 @@ class CountingRemoteProvider:
             provider="counting_remote",
             validation_status="validated",
         )
+
+
+class UnavailableModelProvider:
+    requires_assessment_budget = True
+
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def assess(
+        self, change_type: ChangeType, heading: str, old_text: str | None, new_text: str | None
+    ) -> AssessmentResult:
+        self.calls += 1
+        raise RuntimeError("local model is unavailable")
 
 
 def test_remote_assessment_calls_are_bounded_per_comparison() -> None:
@@ -277,3 +329,44 @@ def test_remote_assessment_calls_are_bounded_per_comparison() -> None:
     providers = {change["assessment"]["provider"] for change in comparison.json()["changes"]}
     assert "counting_remote" in providers
     assert "heuristic:budget_fallback" in providers
+
+
+def test_unavailable_model_is_tried_once_then_the_comparison_falls_back() -> None:
+    runtime_dir = _runtime_dir()
+    app = create_app(
+        f"sqlite:///{runtime_dir / 'docudiff.db'}",
+        settings=build_settings(runtime_dir),
+        create_schema_for_tests=True,
+    )
+    provider = UnavailableModelProvider()
+    app.state.assessment_service = SafeAssessmentService(provider)
+
+    with TestClient(app) as client:
+        document = client.post(
+            "/api/v1/documents",
+            json={
+                "title": "Unavailable Model Terms",
+                "version_label": "v1",
+                "content": "1. Payment\n30 days.\n\n2. Privacy\nNo sharing.",
+            },
+        ).json()
+        candidate = client.post(
+            f"/api/v1/documents/{document['id']}/versions",
+            json={
+                "version_label": "v2",
+                "content": "1. Payment\n15 days.\n\n2. Privacy\nAnalytics sharing allowed.",
+            },
+        ).json()
+        comparison = client.post(
+            "/api/v1/comparisons",
+            json={
+                "baseline_version_id": document["versions"][0]["id"],
+                "candidate_version_id": candidate["id"],
+            },
+        )
+
+    assert comparison.status_code == 201
+    assert provider.calls == 1
+    assert {change["assessment"]["provider"] for change in comparison.json()["changes"]} == {
+        "heuristic:fallback"
+    }

@@ -26,6 +26,8 @@ def test_fresh_alembic_database_serves_the_api() -> None:
         max_changed_sections=100,
         max_assessment_calls=10,
         llm_provider="heuristic",
+        ollama_base_url="http://localhost:11434",
+        ollama_model="gemma3",
         openai_api_key=None,
         openai_model="unused",
         llm_timeout_seconds=1.0,
