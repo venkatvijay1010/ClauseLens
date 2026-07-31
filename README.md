@@ -192,3 +192,4 @@ PolicyMind is an insurance Q&A system that routes a natural-language question to
 - [Project explanation from scratch](docs/PROJECT_EXPLANATION.md)
 - [Technology choices, learning time, cost, and alternatives](docs/TECHNOLOGY_AND_LEARNING.md)
 - [Verification loop and current results](docs/VERIFICATION.md)
+- [Hands-on run, upload, and expected-results guide](docs/testing/README.md)
