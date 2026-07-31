@@ -1,0 +1,51 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "docudiff"
+version = "0.1.0"
+description = "Evidence-backed document version comparison and change-review assistant."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Vijay Bellamkonda" }]
+dependencies = [
+    "alembic>=1.13",
+    "fastapi>=0.110",
+    "openai>=1.0",
+    "psycopg[binary]>=3.1",
+    "pydantic>=2.6",
+    "pypdf>=4.0",
+    "python-docx>=1.1",
+    "python-multipart>=0.0.9",
+    "sqlalchemy>=2.0",
+    "uvicorn[standard]>=0.27",
+]
+
+[project.optional-dependencies]
+dev = [
+    "httpx>=0.27",
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "ruff>=0.4",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+exclude = [".test-tmp", "test-runtime"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "W"]
+ignore = ["E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]

@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DocuDiff — Evidence-backed change review</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <main>
+      <p class="eyebrow">DocuDiff demo</p>
+      <h1>See what changed — and why it needs review.</h1>
+      <p class="lead">
+        DocuDiff aligns two document versions, calculates evidence-backed changes deterministically,
+        and assesses only the changed sections. It is a review assistant, not legal advice.
+      </p>
+      <p class="notice">
+        This no-key demo uses the local heuristic assessment provider. Switch to the optional structured
+        OpenAI provider only after setting environment variables.
+      </p>
+
+      <section class="panel">
+        <h2>Compare two versions</h2>
+        <form id="comparison-form">
+          <label>
+            Document title
+            <input id="title" value="Vendor Terms" maxlength="255" required />
+          </label>
+          <div class="grid">
+            <label>
+              Baseline — v1
+              <textarea id="baseline" required>1. Payment Terms
+Customer invoices are payable within 30 days of receipt.
+
+2. Privacy and Data Use
+We use personal data only to provide the service.
+
+3. Termination
+Either party may terminate for material breach after 30 days notice.</textarea>
+            </label>
+            <label>
+              Revised — v2
+              <textarea id="candidate" required>1. Payment Terms
+Customer invoices are payable within 15 days of receipt. Late payments incur a 5% fee.
+
+2. Privacy and Data Use
+We may share personal data with approved analytics subprocessors.
+
+3. Termination
+The provider may terminate immediately for convenience.</textarea>
+            </label>
+          </div>
+          <button id="submit" type="submit">Run comparison</button>
+        </form>
+        <p id="status" class="status" aria-live="polite"></p>
+      </section>
+
+      <section id="results" class="panel hidden">
+        <h2>Comparison report</h2>
+        <p id="summary" class="summary"></p>
+        <label class="filter-label">
+          Filter by severity
+          <select id="severity-filter">
+            <option value="all">All changes</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+          </select>
+        </label>
+        <div id="changes"></div>
+      </section>
+    </main>
+    <script src="/static/app.js"></script>
+  </body>
+</html>

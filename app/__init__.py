@@ -1,0 +1,1 @@
+"""DocuDiff application package."""
