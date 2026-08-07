@@ -200,27 +200,35 @@ class SafeAssessmentService:
         """Return the active adapter rather than only the requested environment value."""
         return str(getattr(self.provider, "provider_name", "custom"))
 
+    def _fallback_for(
+        self,
+        reason: str,
+        change_type: ChangeType,
+        heading: str,
+        old_text: str | None,
+        new_text: str | None,
+    ) -> AssessmentResult:
+        """Return a labelled local result with the specified fallback reason."""
+        fallback = self.fallback.assess(change_type, heading, old_text, new_text)
+        suffix = "budget_fallback" if reason == "budget" else "fallback"
+        status = "fallback_after_assessment_budget" if reason == "budget" else "fallback_after_provider_error"
+        return AssessmentResult(
+            payload=fallback.payload,
+            provider=f"{fallback.provider}:{suffix}",
+            validation_status=status,
+        )
+
     def fallback_assessment(
         self, change_type: ChangeType, heading: str, old_text: str | None, new_text: str | None
     ) -> AssessmentResult:
         """Return a labelled local result when the model-call budget is exhausted."""
-        fallback = self.fallback.assess(change_type, heading, old_text, new_text)
-        return AssessmentResult(
-            payload=fallback.payload,
-            provider=f"{fallback.provider}:budget_fallback",
-            validation_status="fallback_after_assessment_budget",
-        )
+        return self._fallback_for("budget", change_type, heading, old_text, new_text)
 
     def provider_failure_fallback(
         self, change_type: ChangeType, heading: str, old_text: str | None, new_text: str | None
     ) -> AssessmentResult:
         """Return the normal safe fallback without retrying an unavailable provider."""
-        fallback = self.fallback.assess(change_type, heading, old_text, new_text)
-        return AssessmentResult(
-            payload=fallback.payload,
-            provider=f"{fallback.provider}:fallback",
-            validation_status="fallback_after_provider_error",
-        )
+        return self._fallback_for("provider_error", change_type, heading, old_text, new_text)
 
     def assess(
         self, change_type: ChangeType, heading: str, old_text: str | None, new_text: str | None

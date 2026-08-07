@@ -26,12 +26,10 @@ from app.api.schemas import (
     ChangeResponse,
     ComparisonCreateRequest,
     ComparisonResponse,
-    DocumentCreateRequest,
     DocumentResponse,
     EvaluationResponse,
     ReviewRequest,
     ReviewResponse,
-    VersionCreateRequest,
     VersionResponse,
 )
 from app.models import (
@@ -70,14 +68,6 @@ def get_db(request: Request) -> Iterator[Session]:
 
 
 DatabaseDependency = Annotated[Session, Depends(get_db)]
-
-
-def _assert_text_within_limit(content: str, limit: int) -> None:
-    if len(content) > limit:
-        raise HTTPException(
-            status_code=413,
-            detail=f"Document text exceeds the {limit:,}-character safety limit.",
-        )
 
 
 async def _read_limited_upload(file: UploadFile, max_upload_bytes: int) -> bytes:
@@ -179,33 +169,6 @@ def _comparison_response(
     )
 
 
-@router.post("/documents", response_model=DocumentResponse, status_code=status.HTTP_201_CREATED)
-def create_document_endpoint(
-    payload: DocumentCreateRequest, request: Request, db: DatabaseDependency
-) -> DocumentResponse:
-    try:
-        _assert_text_within_limit(payload.content, request.app.state.settings.max_extracted_chars)
-        document = create_document(
-            db,
-            payload.title,
-            VersionInput(payload.version_label, payload.content),
-            request.app.state.settings.max_sections_per_version,
-        )
-        db.commit()
-        document = db.scalar(
-            select(Document)
-            .options(selectinload(Document.versions).selectinload(DocumentVersion.sections))
-            .where(Document.id == document.id)
-        )
-        return _document_response(document)
-    except IntegrityError as exc:
-        db.rollback()
-        raise HTTPException(status_code=409, detail="A version with this label already exists.") from exc
-    except ValueError as exc:
-        db.rollback()
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
-
-
 @router.get("/documents/{document_id}", response_model=DocumentResponse)
 def get_document_endpoint(document_id: str, db: DatabaseDependency) -> DocumentResponse:
     document = db.scalar(
@@ -218,36 +181,8 @@ def get_document_endpoint(document_id: str, db: DatabaseDependency) -> DocumentR
     return _document_response(document)
 
 
-@router.post(
-    "/documents/{document_id}/versions", response_model=VersionResponse, status_code=status.HTTP_201_CREATED
-)
-def create_version_endpoint(
-    document_id: str, payload: VersionCreateRequest, request: Request, db: DatabaseDependency
-) -> VersionResponse:
-    try:
-        _assert_text_within_limit(payload.content, request.app.state.settings.max_extracted_chars)
-        version = create_version(
-            db,
-            document_id,
-            VersionInput(payload.version_label, payload.content),
-            request.app.state.settings.max_sections_per_version,
-        )
-        db.commit()
-        db.refresh(version)
-        return _version_response(version)
-    except NotFoundError as exc:
-        db.rollback()
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
-    except IntegrityError as exc:
-        db.rollback()
-        raise HTTPException(status_code=409, detail="A version with this label already exists.") from exc
-    except ValueError as exc:
-        db.rollback()
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
-
-
-@router.post("/documents/upload", response_model=DocumentResponse, status_code=status.HTTP_201_CREATED)
-async def upload_document_endpoint(
+@router.post("/documents", response_model=DocumentResponse, status_code=status.HTTP_201_CREATED)
+async def create_document_endpoint(
     request: Request,
     db: DatabaseDependency,
     title: Annotated[str, Form(min_length=2, max_length=255)],
@@ -280,11 +215,11 @@ async def upload_document_endpoint(
 
 
 @router.post(
-    "/documents/{document_id}/versions/upload",
+    "/documents/{document_id}/versions",
     response_model=VersionResponse,
     status_code=status.HTTP_201_CREATED,
 )
-async def upload_version_endpoint(
+async def create_version_endpoint(
     document_id: str,
     request: Request,
     db: DatabaseDependency,

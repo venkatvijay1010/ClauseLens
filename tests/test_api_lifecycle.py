@@ -54,11 +54,8 @@ def test_document_version_comparison_review_and_evaluation_flow() -> None:
 
         document = client.post(
             "/api/v1/documents",
-            json={
-                "title": "Vendor Terms",
-                "version_label": "v1",
-                "content": "1. Payment Terms\nInvoices are due in 30 days.\n\n2. Support\nEmail support is included.",
-            },
+            data={"title": "Vendor Terms", "version_label": "v1"},
+            files={"file": ("terms.txt", b"1. Payment Terms\nInvoices are due in 30 days.\n\n2. Support\nEmail support is included.", "text/plain")},
         )
         assert document.status_code == 201
         document_body = document.json()
@@ -66,10 +63,8 @@ def test_document_version_comparison_review_and_evaluation_flow() -> None:
 
         version = client.post(
             f"/api/v1/documents/{document_body['id']}/versions",
-            json={
-                "version_label": "v2",
-                "content": "1. Payment Terms\nInvoices are due in 15 days with a late fee.\n\n2. Privacy\nWe share personal data with analytics providers.",
-            },
+            data={"version_label": "v2"},
+            files={"file": ("terms-v2.txt", b"1. Payment Terms\nInvoices are due in 15 days with a late fee.\n\n2. Privacy\nWe share personal data with analytics providers.", "text/plain")},
         )
         assert version.status_code == 201
 
@@ -171,11 +166,13 @@ def test_cross_document_comparisons_are_rejected() -> None:
     with TestClient(app) as client:
         first = client.post(
             "/api/v1/documents",
-            json={"title": "One", "content": "1. A\nBaseline", "version_label": "v1"},
+            data={"title": "One", "version_label": "v1"},
+            files={"file": ("one.txt", b"1. A\nBaseline", "text/plain")},
         ).json()
         second = client.post(
             "/api/v1/documents",
-            json={"title": "Two", "content": "1. A\nCandidate", "version_label": "v1"},
+            data={"title": "Two", "version_label": "v1"},
+            files={"file": ("two.txt", b"1. A\nCandidate", "text/plain")},
         ).json()
         response = client.post(
             "/api/v1/comparisons",
@@ -197,7 +194,7 @@ def test_text_file_upload_and_unsupported_extension_handling() -> None:
     )
     with TestClient(app) as client:
         uploaded = client.post(
-            "/api/v1/documents/upload",
+            "/api/v1/documents",
             data={"title": "Uploaded Terms", "version_label": "v1"},
             files={"file": ("terms.txt", b"1. Scope\nThe service is available.", "text/plain")},
         )
@@ -205,7 +202,7 @@ def test_text_file_upload_and_unsupported_extension_handling() -> None:
         assert uploaded.json()["versions"][0]["original_filename"] == "terms.txt"
 
         uploaded_version = client.post(
-            f"/api/v1/documents/{uploaded.json()['id']}/versions/upload",
+            f"/api/v1/documents/{uploaded.json()['id']}/versions",
             data={"version_label": "v2"},
             files={"file": ("terms-v2.txt", b"1. Scope\nThe service is available for 15 days.", "text/plain")},
         )
@@ -213,7 +210,7 @@ def test_text_file_upload_and_unsupported_extension_handling() -> None:
         assert uploaded_version.json()["original_filename"] == "terms-v2.txt"
 
         unsupported = client.post(
-            "/api/v1/documents/upload",
+            "/api/v1/documents",
             data={"title": "Unsupported", "version_label": "v1"},
             files={"file": ("terms.exe", b"not a document", "application/octet-stream")},
         )
@@ -236,21 +233,19 @@ def test_section_and_raw_request_body_limits_are_enforced() -> None:
     with TestClient(app) as client:
         too_many_sections = client.post(
             "/api/v1/documents",
-            json={
-                "title": "Structured Terms",
-                "version_label": "v1",
-                "content": "1. Scope\nOne.\n\n2. Payment\nTwo.\n\n3. Privacy\nThree.",
-            },
+            data={"title": "Structured Terms", "version_label": "v1"},
+            files={"file": ("terms.txt", b"1. Scope\nOne.\n\n2. Payment\nTwo.\n\n3. Privacy\nThree.", "text/plain")},
         )
         assert too_many_sections.status_code == 422
         assert "section safety limit" in too_many_sections.json()["detail"]
 
         oversized = client.post(
             "/api/v1/documents",
-            json={"title": "Too large", "content": "x" * 70_000},
+            data={"title": "Too large", "version_label": "v1"},
+            files={"file": ("large.txt", b"x" * 200, "text/plain")},
         )
         assert oversized.status_code == 413
-        assert "Request body exceeds" in oversized.json()["detail"]
+        assert "File exceeds" in oversized.json()["detail"]
 
 
 class CountingRemoteProvider:
@@ -303,18 +298,13 @@ def test_remote_assessment_calls_are_bounded_per_comparison() -> None:
     with TestClient(app) as client:
         document = client.post(
             "/api/v1/documents",
-            json={
-                "title": "Budgeted Terms",
-                "version_label": "v1",
-                "content": "1. Payment\n30 days.\n\n2. Privacy\nNo sharing.",
-            },
+            data={"title": "Budgeted Terms", "version_label": "v1"},
+            files={"file": ("terms.txt", b"1. Payment\n30 days.\n\n2. Privacy\nNo sharing.", "text/plain")},
         ).json()
         candidate = client.post(
             f"/api/v1/documents/{document['id']}/versions",
-            json={
-                "version_label": "v2",
-                "content": "1. Payment\n15 days.\n\n2. Privacy\nAnalytics sharing allowed.",
-            },
+            data={"version_label": "v2"},
+            files={"file": ("terms-v2.txt", b"1. Payment\n15 days.\n\n2. Privacy\nAnalytics sharing allowed.", "text/plain")},
         ).json()
         comparison = client.post(
             "/api/v1/comparisons",
@@ -344,18 +334,13 @@ def test_unavailable_model_is_tried_once_then_the_comparison_falls_back() -> Non
     with TestClient(app) as client:
         document = client.post(
             "/api/v1/documents",
-            json={
-                "title": "Unavailable Model Terms",
-                "version_label": "v1",
-                "content": "1. Payment\n30 days.\n\n2. Privacy\nNo sharing.",
-            },
+            data={"title": "Unavailable Model Terms", "version_label": "v1"},
+            files={"file": ("terms.txt", b"1. Payment\n30 days.\n\n2. Privacy\nNo sharing.", "text/plain")},
         ).json()
         candidate = client.post(
             f"/api/v1/documents/{document['id']}/versions",
-            json={
-                "version_label": "v2",
-                "content": "1. Payment\n15 days.\n\n2. Privacy\nAnalytics sharing allowed.",
-            },
+            data={"version_label": "v2"},
+            files={"file": ("terms-v2.txt", b"1. Payment\n15 days.\n\n2. Privacy\nAnalytics sharing allowed.", "text/plain")},
         ).json()
         comparison = client.post(
             "/api/v1/comparisons",

@@ -39,6 +39,7 @@ def test_fresh_alembic_database_serves_the_api(monkeypatch) -> None:
         assert client.get("/health").status_code == 200
         response = client.post(
             "/api/v1/documents",
-            json={"title": "Migrated document", "version_label": "v1", "content": "1. Scope\nReady."},
+            data={"title": "Migrated document", "version_label": "v1"},
+            files={"file": ("migrated.txt", b"1. Scope\nReady.", "text/plain")},
         )
         assert response.status_code == 201

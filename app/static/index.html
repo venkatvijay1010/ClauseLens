@@ -7,69 +7,158 @@
     <link rel="stylesheet" href="/static/styles.css" />
   </head>
   <body>
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="brand">
+          <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+          <span class="brand-name">ClauseLens</span>
+        </div>
+        <nav class="topbar-nav">
+          <span class="nav-pill active">Compare</span>
+          <span class="nav-pill" id="nav-history">History</span>
+        </nav>
+        <div class="topbar-status">
+          <span class="status-dot"></span>
+          <span id="provider-label">Local engine</span>
+        </div>
+      </div>
+    </header>
+
     <main>
-      <p class="eyebrow">ClauseLens demo</p>
-      <h1>See what changed — and why it needs review.</h1>
-      <p class="lead">
-        ClauseLens aligns two document versions, calculates evidence-backed changes deterministically,
-        and assesses only the changed sections. It is a review assistant, not legal advice.
-      </p>
-      <p class="notice">
-        This no-key demo uses the local heuristic assessment provider. Optionally switch to local Ollama
-        or a remote provider after setting environment variables.
-      </p>
-
-      <section class="panel">
-        <h2>Compare two versions</h2>
-        <form id="comparison-form">
-          <label>
-            Document title
-            <input id="title" value="Vendor Terms" maxlength="255" required />
-          </label>
-          <div class="grid">
-            <label>
-              Baseline — v1
-              <textarea id="baseline" required>1. Payment Terms
-Customer invoices are payable within 30 days of receipt.
-
-2. Privacy and Data Use
-We use personal data only to provide the service.
-
-3. Termination
-Either party may terminate for material breach after 30 days notice.</textarea>
-            </label>
-            <label>
-              Revised — v2
-              <textarea id="candidate" required>1. Payment Terms
-Customer invoices are payable within 15 days of receipt. Late payments incur a 5% fee.
-
-2. Privacy and Data Use
-We may share personal data with approved analytics subprocessors.
-
-3. Termination
-The provider may terminate immediately for convenience.</textarea>
-            </label>
-          </div>
-          <button id="submit" type="submit">Run comparison</button>
-        </form>
-        <p id="status" class="status" aria-live="polite"></p>
+      <section class="hero">
+        <h1>Compare document versions with precision.</h1>
+        <p class="lead">
+          Upload two contract versions — ClauseLens identifies every change, assesses severity,
+          and delivers evidence-backed insights for faster review.
+        </p>
       </section>
 
+      <!-- Step 1: Metadata -->
+      <section class="panel" id="step-meta">
+        <div class="step-header">
+          <span class="step-number">1</span>
+          <div>
+            <h2>Document metadata</h2>
+            <p class="step-desc">Name this comparison for your records.</p>
+          </div>
+        </div>
+        <div class="meta-form">
+          <div class="field">
+            <label for="title">Document title</label>
+            <input id="title" placeholder="e.g. Vendor Services Agreement" maxlength="255" required />
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label for="baseline-label">Baseline label</label>
+              <input id="baseline-label" value="v1" maxlength="80" />
+            </div>
+            <div class="field">
+              <label for="candidate-label">Revised label</label>
+              <input id="candidate-label" value="v2" maxlength="80" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Step 2: Upload -->
+      <section class="panel" id="step-upload">
+        <div class="step-header">
+          <span class="step-number">2</span>
+          <div>
+            <h2>Upload versions</h2>
+            <p class="step-desc">Drag & drop or click to upload. Supports PDF, DOCX, and plain text.</p>
+          </div>
+        </div>
+
+        <div class="upload-mode-toggle">
+          <button class="toggle-btn active" data-mode="upload">Upload files</button>
+          <button class="toggle-btn" data-mode="paste">Paste text</button>
+        </div>
+
+        <div class="upload-grid" id="upload-panel">
+          <div class="upload-zone" id="zone-baseline" data-role="baseline">
+            <div class="zone-content">
+              <svg class="zone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <p class="zone-label">Baseline (v1)</p>
+              <p class="zone-hint">Drop file here or <span class="zone-link">browse</span></p>
+              <p class="zone-formats">PDF, DOCX, TXT — max 10 MB</p>
+            </div>
+            <div class="zone-file hidden">
+              <svg class="file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              <span class="file-name"></span>
+              <button class="file-remove" title="Remove file">&times;</button>
+            </div>
+            <input type="file" class="zone-input" accept=".pdf,.docx,.doc,.txt" />
+          </div>
+          <div class="upload-zone" id="zone-candidate" data-role="candidate">
+            <div class="zone-content">
+              <svg class="zone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <p class="zone-label">Revised (v2)</p>
+              <p class="zone-hint">Drop file here or <span class="zone-link">browse</span></p>
+              <p class="zone-formats">PDF, DOCX, TXT — max 10 MB</p>
+            </div>
+            <div class="zone-file hidden">
+              <svg class="file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              <span class="file-name"></span>
+              <button class="file-remove" title="Remove file">&times;</button>
+            </div>
+            <input type="file" class="zone-input" accept=".pdf,.docx,.doc,.txt" />
+          </div>
+        </div>
+
+        <div class="paste-grid hidden" id="paste-panel">
+          <div class="field">
+            <label for="baseline-text">Baseline text</label>
+            <textarea id="baseline-text" placeholder="Paste the original contract text here…" rows="10"></textarea>
+          </div>
+          <div class="field">
+            <label for="candidate-text">Revised text</label>
+            <textarea id="candidate-text" placeholder="Paste the revised contract text here…" rows="10"></textarea>
+          </div>
+        </div>
+      </section>
+
+      <!-- Step 3: Actions -->
+      <section class="panel actions-panel" id="step-actions">
+        <button class="btn btn-primary btn-lg" id="btn-compare">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          Run comparison
+        </button>
+        <button class="btn btn-secondary" id="btn-reset">Reset</button>
+        <p id="status" class="status-msg" aria-live="polite"></p>
+      </section>
+
+      <!-- Progress -->
+      <section class="panel hidden" id="progress-panel">
+        <div class="progress-bar">
+          <div class="progress-fill" id="progress-fill"></div>
+        </div>
+        <p class="progress-text" id="progress-text">Uploading documents…</p>
+      </section>
+
+      <!-- Results -->
       <section id="results" class="panel hidden">
-        <h2>Comparison report</h2>
-        <p id="summary" class="summary"></p>
-        <label class="filter-label">
-          Filter by severity
-          <select id="severity-filter">
-            <option value="all">All changes</option>
-            <option value="high">High</option>
-            <option value="medium">Medium</option>
-            <option value="low">Low</option>
-          </select>
-        </label>
+        <div class="results-header">
+          <h2>Comparison report</h2>
+          <div class="results-meta" id="results-meta"></div>
+        </div>
+        <div class="results-toolbar">
+          <div class="severity-pills" id="severity-pills">
+            <button class="pill active" data-severity="all">All</button>
+            <button class="pill pill-high" data-severity="high">High</button>
+            <button class="pill pill-medium" data-severity="medium">Medium</button>
+            <button class="pill pill-low" data-severity="low">Low</button>
+          </div>
+          <span class="change-count" id="change-count"></span>
+        </div>
         <div id="changes"></div>
       </section>
     </main>
+
+    <footer class="app-footer">
+      <p>ClauseLens is a review assistant — not legal advice. All assessments are evidence-backed and deterministic.</p>
+    </footer>
+
     <script src="/static/app.js"></script>
   </body>
 </html>

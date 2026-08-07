@@ -9,17 +9,6 @@ from pydantic import BaseModel, Field
 from app.models import ChangeCategory, ChangeType, ReviewStatus, Severity
 
 
-class DocumentCreateRequest(BaseModel):
-    title: str = Field(min_length=2, max_length=255)
-    version_label: str = Field(default="v1", min_length=1, max_length=80)
-    content: str = Field(min_length=1, max_length=500_000)
-
-
-class VersionCreateRequest(BaseModel):
-    version_label: str = Field(min_length=1, max_length=80)
-    content: str = Field(min_length=1, max_length=500_000)
-
-
 class VersionResponse(BaseModel):
     id: str
     version_label: str
