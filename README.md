@@ -174,10 +174,6 @@ scripts/run_evaluation.py
 tests/
 ```
 
-## How ClauseLens differs from PolicyMind
-
-PolicyMind is an insurance Q&A system that routes a natural-language question to hybrid retrieval, SQL, or both. ClauseLens accepts two document versions and runs a deterministic comparison pipeline before asking an LLM to classify only changed sections. It therefore demonstrates a different product workflow, data model, evaluation methodology, and AI-control strategy. Full rationale: [PROJECT_EXPLANATION.md](docs/PROJECT_EXPLANATION.md#how-it-differs-from-a-rag-project-like-policymind).
-
 ## Repository checklist
 
 - [x] Clean standalone project structure
