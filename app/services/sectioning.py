@@ -27,8 +27,8 @@ ALL_CAPS_HEADING = re.compile(r"^[A-Z][A-Z0-9 /&,:;()\-]{3,100}$")
 
 
 def normalize_heading(heading: str) -> str:
-    value = re.sub(r"^\d+(?:\.\d+){0,4}[.)]?\s*", "", heading.strip().lower())
-    value = re.sub(r"[^a-z0-9]+", " ", value)
+    value = heading.strip().lower()
+    value = re.sub(r"[^a-z0-9.]+", " ", value)
     return re.sub(r"\s+", " ", value).strip()
 
 
@@ -127,6 +127,11 @@ def split_into_sections(text: str, max_sections: int | None = None) -> list[Pars
     if sections:
         return sections
 
+    # Fallback: split on labeled fields ("Key: Value" lines) for tabular/invoice PDFs
+    sections = _split_on_labeled_fields(text, max_sections)
+    if sections:
+        return sections
+
     fallback = normalize_text(text)
     return [
         ParsedSection(
@@ -137,3 +142,80 @@ def split_into_sections(text: str, max_sections: int | None = None) -> list[Pars
             page_number=1,
         )
     ]
+
+
+LABELED_FIELD = re.compile(r"^([A-Za-z][A-Za-z0-9 /&()\-]{1,60}):\s+(.+)$")
+
+
+def _split_on_labeled_fields(
+    text: str, max_sections: int | None
+) -> list[ParsedSection]:
+    """Split documents with 'Label: Value' patterns into one section per field."""
+    raw_lines = text.replace("\r\n", "\n").replace("\r", "\n").split("\n")
+    sections: list[ParsedSection] = []
+    current_page = 1
+    unlabeled_lines: list[str] = []
+
+    for line in raw_lines:
+        if "\f" in line:
+            fragments = line.split("\f")
+            for i, fragment in enumerate(fragments):
+                if fragment.strip():
+                    unlabeled_lines.append(fragment)
+                if i < len(fragments) - 1:
+                    current_page += 1
+            continue
+
+        match = LABELED_FIELD.match(line.strip())
+        if match:
+            # Flush any unlabeled lines accumulated before this field
+            if unlabeled_lines:
+                block = normalize_text("\n".join(unlabeled_lines))
+                if block:
+                    if max_sections is not None and len(sections) >= max_sections:
+                        raise SectionLimitError(f"Document exceeds the {max_sections} section safety limit.")
+                    heading = block[:60].split("\n")[0] or "Preamble"
+                    sections.append(ParsedSection(
+                        ordinal=len(sections) + 1,
+                        heading=heading,
+                        normalized_heading=normalize_heading(heading),
+                        content=block,
+                        page_number=current_page,
+                    ))
+                unlabeled_lines = []
+
+            label = match.group(1).strip()
+            value = match.group(2).strip()
+            if max_sections is not None and len(sections) >= max_sections:
+                raise SectionLimitError(f"Document exceeds the {max_sections} section safety limit.")
+            sections.append(ParsedSection(
+                ordinal=len(sections) + 1,
+                heading=label,
+                normalized_heading=normalize_heading(label),
+                content=value,
+                page_number=current_page,
+            ))
+        else:
+            unlabeled_lines.append(line)
+
+    # Flush remaining unlabeled lines
+    if unlabeled_lines:
+        block = normalize_text("\n".join(unlabeled_lines))
+        if block:
+            if max_sections is not None and len(sections) >= max_sections:
+                raise SectionLimitError(f"Document exceeds the {max_sections} section safety limit.")
+            heading = block[:60].split("\n")[0] or "Remainder"
+            sections.append(ParsedSection(
+                ordinal=len(sections) + 1,
+                heading=heading,
+                normalized_heading=normalize_heading(heading),
+                content=block,
+                page_number=current_page,
+            ))
+
+    # Only use this fallback if we found a reasonable number of labeled fields
+    labeled_count = sum(1 for s in sections if LABELED_FIELD.match(s.heading + ": x"))
+    if labeled_count < 2:
+        return []
+
+    return sections

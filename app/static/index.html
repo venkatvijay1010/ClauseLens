@@ -3,19 +3,36 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>ClauseLens — Evidence-backed change review</title>
+    <title>ClauseLens — Contract Change Review</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/static/styles.css" />
   </head>
   <body>
+
+    <!-- Decorative Clause Graph layer; separate from app content for accessibility. -->
+    <div class="ambient-background" aria-hidden="true">
+      <canvas class="ambient-canvas" id="ambient-canvas"></canvas>
+      <div class="ambient-grid"></div>
+      <div class="ambient-orb ambient-orb-one"></div>
+      <div class="ambient-orb ambient-orb-two"></div>
+      <div class="ambient-orb ambient-orb-three"></div>
+    </div>
+
+    <!-- Toast container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Top bar -->
     <header class="topbar">
       <div class="topbar-inner">
         <div class="brand">
-          <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+          <div class="brand-mark">CL</div>
           <span class="brand-name">ClauseLens</span>
         </div>
         <nav class="topbar-nav">
-          <span class="nav-pill active">Compare</span>
-          <span class="nav-pill" id="nav-history">History</span>
+          <button class="nav-pill active" data-view="compare">Compare</button>
+          <button class="nav-pill" data-view="history" id="nav-history">History</button>
         </nav>
         <div class="topbar-status">
           <span class="status-dot"></span>
@@ -24,135 +41,169 @@
       </div>
     </header>
 
-    <main>
+    <!-- Compare view -->
+    <main id="view-compare">
       <section class="hero">
-        <h1>Compare document versions with precision.</h1>
+        <h1>Compare contract versions<br/>with confidence.</h1>
         <p class="lead">
-          Upload two contract versions — ClauseLens identifies every change, assesses severity,
-          and delivers evidence-backed insights for faster review.
+          Upload two document versions and ClauseLens identifies every change,
+          assesses risk severity, and delivers evidence-backed insights.
         </p>
       </section>
 
-      <!-- Step 1: Metadata -->
-      <section class="panel" id="step-meta">
-        <div class="step-header">
-          <span class="step-number">1</span>
-          <div>
-            <h2>Document metadata</h2>
-            <p class="step-desc">Name this comparison for your records.</p>
+      <!-- Hidden input for title (auto-derived from filename) -->
+      <input id="title" type="hidden" value="" />
+
+      <div class="wizard">
+        <section class="card" id="step-upload">
+          <div class="card-header">
+            <div>
+              <h2>Upload versions</h2>
+              <p class="card-subtitle">Drag & drop or click. Accepts PDF, DOCX, Excel, and plain text up to 10 MB.</p>
+            </div>
           </div>
-        </div>
-        <div class="meta-form">
-          <div class="field">
-            <label for="title">Document title</label>
-            <input id="title" placeholder="e.g. Vendor Services Agreement" maxlength="255" required />
+          <div class="card-body">
+            <div class="upload-grid">
+              <div class="drop-zone" id="zone-baseline" data-role="baseline">
+                <div class="drop-zone-idle">
+                  <div class="drop-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  </div>
+                  <span class="drop-title">Baseline document</span>
+                  <span class="drop-hint">Drop file or <span class="drop-browse">browse</span></span>
+                  <span class="drop-formats">PDF, DOCX, XLSX, TXT</span>
+                </div>
+                <div class="drop-zone-active hidden">
+                  <div class="file-chip">
+                    <svg class="file-chip-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    <span class="file-chip-name"></span>
+                    <span class="file-chip-size"></span>
+                    <button class="file-chip-remove" title="Remove">&times;</button>
+                  </div>
+                </div>
+                <input type="file" class="drop-input" accept=".pdf,.docx,.doc,.txt,.xlsx,.xls" />
+              </div>
+
+              <div class="upload-arrow" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+              </div>
+
+              <div class="drop-zone" id="zone-candidate" data-role="candidate">
+                <div class="drop-zone-idle">
+                  <div class="drop-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  </div>
+                  <span class="drop-title">Revised document</span>
+                  <span class="drop-hint">Drop file or <span class="drop-browse">browse</span></span>
+                  <span class="drop-formats">PDF, DOCX, XLSX, TXT</span>
+                </div>
+                <div class="drop-zone-active hidden">
+                  <div class="file-chip">
+                    <svg class="file-chip-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    <span class="file-chip-name"></span>
+                    <span class="file-chip-size"></span>
+                    <button class="file-chip-remove" title="Remove">&times;</button>
+                  </div>
+                </div>
+                <input type="file" class="drop-input" accept=".pdf,.docx,.doc,.txt,.xlsx,.xls" />
+              </div>
+            </div>
           </div>
-          <div class="field-row">
+        </section>
+
+        <!-- Actions -->
+        <section class="action-bar">
+          <button class="btn btn-primary btn-lg" id="btn-compare" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5"/><path d="M4 20L21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>
+            Run comparison
+          </button>
+          <button class="btn btn-ghost" id="btn-reset">Clear all</button>
+          <button class="btn btn-ghost btn-sm" id="btn-edit-title" type="button">Edit title</button>
+          <p id="status" class="status-msg" aria-live="polite"></p>
+        </section>
+
+        <!-- Optional: editable title (collapsed by default) -->
+        <section class="card detail-editor hidden" id="detail-editor">
+          <div class="card-body">
             <div class="field">
-              <label for="baseline-label">Baseline label</label>
-              <input id="baseline-label" value="v1" maxlength="80" />
-            </div>
-            <div class="field">
-              <label for="candidate-label">Revised label</label>
-              <input id="candidate-label" value="v2" maxlength="80" />
+              <label for="title-edit">Document title</label>
+              <input id="title-edit" type="text" placeholder="Auto-derived from filename" maxlength="255" autocomplete="off" />
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </div>
 
-      <!-- Step 2: Upload -->
-      <section class="panel" id="step-upload">
-        <div class="step-header">
-          <span class="step-number">2</span>
-          <div>
-            <h2>Upload versions</h2>
-            <p class="step-desc">Drag & drop or click to upload. Supports PDF, DOCX, and plain text.</p>
+      <!-- Progress modal overlay -->
+      <div class="progress-overlay hidden" id="progress-overlay">
+        <div class="progress-modal">
+          <div class="progress-modal-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20L21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>
           </div>
-        </div>
-
-        <div class="upload-mode-toggle">
-          <button class="toggle-btn active" data-mode="upload">Upload files</button>
-          <button class="toggle-btn" data-mode="paste">Paste text</button>
-        </div>
-
-        <div class="upload-grid" id="upload-panel">
-          <div class="upload-zone" id="zone-baseline" data-role="baseline">
-            <div class="zone-content">
-              <svg class="zone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-              <p class="zone-label">Baseline (v1)</p>
-              <p class="zone-hint">Drop file here or <span class="zone-link">browse</span></p>
-              <p class="zone-formats">PDF, DOCX, TXT — max 10 MB</p>
-            </div>
-            <div class="zone-file hidden">
-              <svg class="file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-              <span class="file-name"></span>
-              <button class="file-remove" title="Remove file">&times;</button>
-            </div>
-            <input type="file" class="zone-input" accept=".pdf,.docx,.doc,.txt" />
+          <h3 class="progress-modal-title" id="progress-text">Preparing...</h3>
+          <div class="progress-modal-track">
+            <div class="progress-modal-fill" id="progress-fill"></div>
           </div>
-          <div class="upload-zone" id="zone-candidate" data-role="candidate">
-            <div class="zone-content">
-              <svg class="zone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-              <p class="zone-label">Revised (v2)</p>
-              <p class="zone-hint">Drop file here or <span class="zone-link">browse</span></p>
-              <p class="zone-formats">PDF, DOCX, TXT — max 10 MB</p>
-            </div>
-            <div class="zone-file hidden">
-              <svg class="file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-              <span class="file-name"></span>
-              <button class="file-remove" title="Remove file">&times;</button>
-            </div>
-            <input type="file" class="zone-input" accept=".pdf,.docx,.doc,.txt" />
-          </div>
+          <span class="progress-modal-pct" id="progress-pct">0%</span>
         </div>
-
-        <div class="paste-grid hidden" id="paste-panel">
-          <div class="field">
-            <label for="baseline-text">Baseline text</label>
-            <textarea id="baseline-text" placeholder="Paste the original contract text here…" rows="10"></textarea>
-          </div>
-          <div class="field">
-            <label for="candidate-text">Revised text</label>
-            <textarea id="candidate-text" placeholder="Paste the revised contract text here…" rows="10"></textarea>
-          </div>
-        </div>
-      </section>
-
-      <!-- Step 3: Actions -->
-      <section class="panel actions-panel" id="step-actions">
-        <button class="btn btn-primary btn-lg" id="btn-compare">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          Run comparison
-        </button>
-        <button class="btn btn-secondary" id="btn-reset">Reset</button>
-        <p id="status" class="status-msg" aria-live="polite"></p>
-      </section>
-
-      <!-- Progress -->
-      <section class="panel hidden" id="progress-panel">
-        <div class="progress-bar">
-          <div class="progress-fill" id="progress-fill"></div>
-        </div>
-        <p class="progress-text" id="progress-text">Uploading documents…</p>
-      </section>
+      </div>
 
       <!-- Results -->
-      <section id="results" class="panel hidden">
-        <div class="results-header">
-          <h2>Comparison report</h2>
-          <div class="results-meta" id="results-meta"></div>
-        </div>
-        <div class="results-toolbar">
-          <div class="severity-pills" id="severity-pills">
-            <button class="pill active" data-severity="all">All</button>
-            <button class="pill pill-high" data-severity="high">High</button>
-            <button class="pill pill-medium" data-severity="medium">Medium</button>
-            <button class="pill pill-low" data-severity="low">Low</button>
+      <section id="results" class="hidden">
+        <!-- Summary banner -->
+        <div class="summary-banner" id="summary-banner">
+          <div class="summary-stat">
+            <span class="summary-value" id="stat-total">0</span>
+            <span class="summary-label">Changes</span>
           </div>
-          <span class="change-count" id="change-count"></span>
+          <div class="summary-stat summary-high">
+            <span class="summary-value" id="stat-high">0</span>
+            <span class="summary-label">High risk</span>
+          </div>
+          <div class="summary-stat summary-medium">
+            <span class="summary-value" id="stat-medium">0</span>
+            <span class="summary-label">Medium</span>
+          </div>
+          <div class="summary-stat summary-low">
+            <span class="summary-value" id="stat-low">0</span>
+            <span class="summary-label">Low</span>
+          </div>
+          <div class="summary-stat">
+            <span class="summary-value" id="stat-time">—</span>
+            <span class="summary-label">Duration</span>
+          </div>
         </div>
-        <div id="changes"></div>
+
+        <!-- Filters -->
+        <div class="filter-bar">
+          <div class="filter-group" id="severity-pills">
+            <button class="filter-chip active" data-severity="all">All</button>
+            <button class="filter-chip chip-high" data-severity="high">High</button>
+            <button class="filter-chip chip-medium" data-severity="medium">Medium</button>
+            <button class="filter-chip chip-low" data-severity="low">Low</button>
+          </div>
+          <div class="filter-group" id="category-pills">
+            <button class="filter-chip active" data-category="all">All categories</button>
+          </div>
+          <span class="filter-count" id="change-count"></span>
+        </div>
+
+        <!-- Change list -->
+        <div id="changes" class="change-list"></div>
       </section>
+    </main>
+
+    <!-- History view -->
+    <main id="view-history" class="hidden">
+      <section class="hero">
+        <h1>Comparison history</h1>
+        <p class="lead">Review past comparisons and their results.</p>
+      </section>
+      <div class="card">
+        <div class="card-body">
+          <p class="empty-state">History is stored per-session. Run a comparison to see it here.</p>
+          <div id="history-list"></div>
+        </div>
+      </div>
     </main>
 
     <footer class="app-footer">

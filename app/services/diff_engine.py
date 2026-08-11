@@ -51,11 +51,19 @@ def heading_similarity(left: str, right: str) -> float:
 
 
 def _best_fuzzy_match(source: SectionLike, candidates: list[SectionLike]) -> SectionLike | None:
-    scored = [(heading_similarity(source.normalized_heading, candidate.normalized_heading), candidate) for candidate in candidates]
-    if not scored:
-        return None
-    score, candidate = max(scored, key=lambda pair: pair[0])
-    return candidate if score >= 0.82 else None
+    best_score = 0.0
+    best_candidate = None
+    for candidate in candidates:
+        h_sim = heading_similarity(source.normalized_heading, candidate.normalized_heading)
+        if h_sim < 0.5:
+            continue
+        c_sim = text_similarity(source.content, candidate.content) if h_sim < 0.95 else 1.0
+        # Weight: 40% heading, 60% content
+        combined = 0.4 * h_sim + 0.6 * c_sim
+        if combined > best_score:
+            best_score = combined
+            best_candidate = candidate
+    return best_candidate if best_score >= 0.45 else None
 
 
 def _comparison_text(text: str) -> str:

@@ -19,7 +19,7 @@ class ExtractedDocument:
     page_count: int
 
 
-SUPPORTED_EXTENSIONS = {".txt", ".md", ".pdf", ".docx"}
+SUPPORTED_EXTENSIONS = {".txt", ".md", ".pdf", ".docx", ".xlsx", ".xls"}
 MAX_PDF_PAGES = 500
 MAX_DOCX_ARCHIVE_MEMBERS = 500
 DOCX_EXPANSION_MULTIPLIER = 16
@@ -106,6 +106,36 @@ def extract_document(filename: str, content: bytes, max_extracted_chars: int) ->
         return ExtractedDocument(
             text=_validate_text("\n\f\n".join(pages), max_extracted_chars), page_count=len(pages)
         )
+
+    if extension in {".xlsx", ".xls"}:
+        try:
+            from openpyxl import load_workbook
+
+            wb = load_workbook(io.BytesIO(content), read_only=True, data_only=True)
+            sheets: list[str] = []
+            extracted_length = 0
+            for ws in wb.worksheets:
+                rows: list[str] = []
+                for row in ws.iter_rows(values_only=True):
+                    cells = [str(c) if c is not None else "" for c in row]
+                    line = "\t".join(cells).strip()
+                    if not line:
+                        continue
+                    extracted_length += len(line)
+                    if extracted_length > max_extracted_chars:
+                        raise DocumentExtractionError(
+                            f"Extracted text exceeds the {max_extracted_chars:,}-character safety limit."
+                        )
+                    rows.append(line)
+                if rows:
+                    sheet_text = f"# {ws.title}\n" + "\n".join(rows)
+                    sheets.append(sheet_text)
+            wb.close()
+        except DocumentExtractionError:
+            raise
+        except Exception as exc:
+            raise DocumentExtractionError("Could not read this Excel file.") from exc
+        return ExtractedDocument(text=_validate_text("\n\n".join(sheets), max_extracted_chars), page_count=len(sheets))
 
     try:
         from docx import Document

@@ -75,6 +75,17 @@ class ComparisonResponse(BaseModel):
     changes: list[ChangeResponse]
 
 
+class ComparisonSummary(BaseModel):
+    id: str
+    title: str
+    total_changes: int
+    high: int
+    medium: int
+    low: int
+    duration_ms: int
+    created_at: datetime | None
+
+
 class EvaluationResponse(BaseModel):
     run_id: str
     metrics: dict[str, object]

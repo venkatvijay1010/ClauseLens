@@ -26,6 +26,7 @@ from app.api.schemas import (
     ChangeResponse,
     ComparisonCreateRequest,
     ComparisonResponse,
+    ComparisonSummary,
     DocumentResponse,
     EvaluationResponse,
     ReviewRequest,
@@ -186,7 +187,7 @@ async def create_document_endpoint(
     request: Request,
     db: DatabaseDependency,
     title: Annotated[str, Form(min_length=2, max_length=255)],
-    version_label: Annotated[str, Form(min_length=1, max_length=80)] = "v1",
+    version_label: Annotated[str | None, Form(max_length=80)] = None,
     file: UploadFile = File(...),
 ) -> DocumentResponse:
     settings = request.app.state.settings
@@ -223,7 +224,7 @@ async def create_version_endpoint(
     document_id: str,
     request: Request,
     db: DatabaseDependency,
-    version_label: Annotated[str, Form(min_length=1, max_length=80)],
+    version_label: Annotated[str | None, Form(max_length=80)] = None,
     file: UploadFile = File(...),
 ) -> VersionResponse:
     settings = request.app.state.settings
@@ -251,6 +252,33 @@ async def create_version_endpoint(
     except ValueError as exc:
         db.rollback()
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.get("/comparisons", response_model=list[ComparisonSummary])
+def list_comparisons_endpoint(db: DatabaseDependency) -> list[ComparisonSummary]:
+    rows = db.execute(
+        select(Comparison)
+        .options(selectinload(Comparison.changes).selectinload(Change.assessment))
+        .order_by(Comparison.created_at.desc())
+    ).scalars().all()
+    results = []
+    for comp in rows:
+        doc = db.scalar(
+            select(Document).join(DocumentVersion, Document.id == DocumentVersion.document_id)
+            .where(DocumentVersion.id == comp.baseline_version_id)
+        )
+        assessments = [ch.assessment for ch in comp.changes]
+        results.append(ComparisonSummary(
+            id=comp.id,
+            title=doc.title if doc else "Untitled",
+            total_changes=len(comp.changes),
+            high=sum(1 for a in assessments if a and a.severity == "high"),
+            medium=sum(1 for a in assessments if a and a.severity == "medium"),
+            low=sum(1 for a in assessments if a and a.severity == "low"),
+            duration_ms=comp.duration_ms or 0,
+            created_at=comp.created_at,
+        ))
+    return results
 
 
 @router.post("/comparisons", response_model=ComparisonResponse, status_code=status.HTTP_201_CREATED)

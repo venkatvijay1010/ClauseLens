@@ -121,7 +121,7 @@ def test_browser_demo_assets_are_served() -> None:
     assert home.status_code == 200
     assert "ClauseLens" in home.text
     assert script.status_code == 200
-    assert "Creating document versions" in script.text
+    assert "runComparison" in script.text
 
 
 def test_app_selects_ollama_provider_without_requiring_an_api_key() -> None:

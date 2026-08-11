@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass
+from difflib import SequenceMatcher
 from typing import Protocol
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
@@ -12,6 +13,15 @@ from urllib.request import Request, urlopen
 from pydantic import BaseModel, Field
 
 from app.models import ChangeCategory, ChangeType, Severity
+
+
+def _text_similarity(left: str, right: str) -> float:
+    a, b = " ".join(left.split()), " ".join(right.split())
+    if a == b:
+        return 1.0
+    if max(len(a), len(b)) <= 8000:
+        return SequenceMatcher(None, a, b).ratio()
+    return 0.0
 
 
 class AssessmentPayload(BaseModel):
@@ -36,21 +46,113 @@ class AssessmentProvider(Protocol):
 
 
 KEYWORDS: list[tuple[ChangeCategory, set[str]]] = [
-    (ChangeCategory.TERMINATION, {"terminate", "termination", "cancel", "cancellation", "renewal"}),
-    (ChangeCategory.PAYMENT, {"payment", "fee", "price", "invoice", "charge", "penalty", "refund"}),
-    (ChangeCategory.PRIVACY, {"privacy", "personal data", "data sharing", "data use", "processor"}),
-    (ChangeCategory.DEADLINE, {"deadline", "within", "notice", "days", "business day", "effective date"}),
-    (ChangeCategory.ELIGIBILITY, {"eligible", "eligibility", "qualification", "access"}),
-    (ChangeCategory.OBLIGATION, {"must", "shall", "required", "obligation", "responsible"}),
+    (ChangeCategory.TERMINATION, {
+        "terminate", "termination", "cancel", "cancellation", "renewal",
+        "expiry", "expiration", "rescind", "revoke", "void", "dissolve",
+        "suspend", "suspension", "withdraw", "withdrawal", "end of term",
+    }),
+    (ChangeCategory.PAYMENT, {
+        "payment", "fee", "price", "invoice", "charge", "penalty", "refund",
+        "cost", "amount", "compensation", "reimbursement", "billing", "deposit",
+        "premium", "deductible", "interest", "rate", "sum insured", "salary",
+        "wage", "bonus", "commission", "discount", "surcharge", "remuneration",
+        "consideration", "dues", "arrears", "instalment", "installment",
+    }),
+    (ChangeCategory.PRIVACY, {
+        "privacy", "personal data", "data sharing", "data use", "processor",
+        "gdpr", "confidential", "confidentiality", "consent", "retention",
+        "data protection", "data subject", "data controller", "pii",
+        "non-disclosure", "nda", "sensitive information", "encrypted",
+        "anonymize", "pseudonymize", "breach notification",
+    }),
+    (ChangeCategory.DEADLINE, {
+        "deadline", "within", "notice", "days", "business day", "effective date",
+        "calendar day", "working day", "expiry date", "due date", "timeline",
+        "timeframe", "commencement", "start date", "end date", "renewal date",
+        "notice period", "cure period", "grace period", "waiting period",
+    }),
+    (ChangeCategory.ELIGIBILITY, {
+        "eligible", "eligibility", "qualification", "access",
+        "criteria", "prerequisite", "requirement", "entitled", "entitlement",
+        "condition precedent", "condition subsequent", "exclusion",
+        "disqualification", "minimum age", "residency",
+    }),
+    (ChangeCategory.OBLIGATION, {
+        "must", "shall", "required", "obligation", "responsible",
+        "warrant", "warranty", "covenant", "indemnify", "indemnification",
+        "liability", "liable", "guarantee", "undertake", "undertaking",
+        "comply", "compliance", "binding", "duty", "mandatory",
+        "representation", "assurance", "commit", "commitment",
+    }),
 ]
 
 
 def _categorize(text: str) -> ChangeCategory:
     lowered = text.lower()
+    scores: dict[ChangeCategory, int] = {}
     for category, keywords in KEYWORDS:
-        if any(re.search(rf"\b{re.escape(keyword)}\b", lowered) for keyword in keywords):
-            return category
-    return ChangeCategory.OTHER
+        hits = sum(1 for kw in keywords if re.search(rf"\b{re.escape(kw)}\b", lowered))
+        if hits:
+            scores[category] = hits
+    if not scores:
+        return ChangeCategory.OTHER
+    return max(scores, key=scores.get)  # type: ignore[arg-type]
+
+
+def _find_changed_terms(old_text: str | None, new_text: str | None) -> tuple[list[str], list[str]]:
+    """Return (removed_words, added_words) between old and new text."""
+    old_words = set(old_text.lower().split()) if old_text else set()
+    new_words = set(new_text.lower().split()) if new_text else set()
+    removed = old_words - new_words
+    added = new_words - old_words
+    # Filter to substantive words (>3 chars)
+    removed = sorted(w for w in removed if len(w) > 3)
+    added = sorted(w for w in added if len(w) > 3)
+    return removed[:8], added[:8]
+
+
+def _build_summary(
+    change_type: ChangeType, heading: str,
+    old_text: str | None, new_text: str | None,
+    category: ChangeCategory,
+) -> str:
+    action = change_type.value.capitalize()
+    if change_type == ChangeType.ADDED:
+        return f"New {category.value} section \u201c{heading}\u201d added to the document."
+    if change_type == ChangeType.REMOVED:
+        return f"Section \u201c{heading}\u201d ({category.value}) was removed entirely."
+    if change_type == ChangeType.MOVED:
+        return f"Section \u201c{heading}\u201d was repositioned within the document."
+    # MODIFIED — describe what changed
+    removed, added = _find_changed_terms(old_text, new_text)
+    parts = []
+    if removed:
+        parts.append(f"removed: {', '.join(removed[:4])}")
+    if added:
+        parts.append(f"added: {', '.join(added[:4])}")
+    detail = "; ".join(parts) if parts else "wording was revised"
+    sim = _text_similarity(old_text or "", new_text or "")
+    magnitude = "Minor" if sim > 0.85 else "Significant" if sim < 0.5 else "Moderate"
+    summary = f"{magnitude} changes in \u201c{heading}\u201d ({category.value}): {detail}."
+    return summary[:400]
+
+
+def _build_rationale(
+    change_type: ChangeType, category: ChangeCategory,
+    old_text: str | None, new_text: str | None,
+) -> str:
+    action = change_type.value
+    if change_type in (ChangeType.ADDED, ChangeType.REMOVED):
+        return (
+            f"An entire section was {action}. All {category.value}-related "
+            "clauses in this section should be reviewed for business impact."
+        )
+    sim = _text_similarity(old_text or "", new_text or "")
+    pct = round((1 - sim) * 100)
+    return (
+        f"Approximately {pct}% of the content in this {category.value} section was changed. "
+        "Compare the before/after excerpts to assess the contractual impact."
+    )
 
 
 class HeuristicAssessmentProvider:
@@ -64,19 +166,34 @@ class HeuristicAssessmentProvider:
     ) -> AssessmentResult:
         text = " ".join(part for part in [heading, old_text or "", new_text or ""] if part)
         category = _categorize(text)
-        high_categories = {ChangeCategory.TERMINATION, ChangeCategory.PAYMENT, ChangeCategory.PRIVACY}
-        severity = Severity.HIGH if category in high_categories else Severity.MEDIUM
-        if category == ChangeCategory.OTHER or change_type == ChangeType.MOVED:
+
+        if change_type == ChangeType.MOVED:
             severity = Severity.LOW
+        elif category == ChangeCategory.OTHER:
+            severity = Severity.LOW
+        else:
+            # Base severity from category
+            high_categories = {ChangeCategory.TERMINATION, ChangeCategory.PAYMENT, ChangeCategory.PRIVACY}
+            base_severity = Severity.HIGH if category in high_categories else Severity.MEDIUM
+
+            # Adjust based on change magnitude
+            if change_type in (ChangeType.ADDED, ChangeType.REMOVED):
+                severity = base_severity
+            else:
+                similarity = _text_similarity(old_text or "", new_text or "")
+                if similarity > 0.95:
+                    severity = Severity.LOW
+                elif similarity > 0.75:
+                    severity = Severity.MEDIUM if base_severity == Severity.HIGH else Severity.LOW
+                else:
+                    severity = base_severity
         action = change_type.value
+        summary = _build_summary(change_type, heading, old_text, new_text, category)
         payload = AssessmentPayload(
             category=category,
             severity=severity,
-            summary=f"{action.capitalize()} section: {heading}.",
-            rationale=(
-                f"The deterministic diff detected a {action} change in a {category.value} area. "
-                "A reviewer should confirm the business impact against the source excerpts."
-            ),
+            summary=summary,
+            rationale=_build_rationale(change_type, category, old_text, new_text),
             needs_human_review=severity != Severity.LOW,
         )
         return AssessmentResult(payload=payload, provider="heuristic", validation_status="validated")

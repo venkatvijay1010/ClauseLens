@@ -37,7 +37,7 @@ class InvalidComparisonError(ValueError):
 
 @dataclass(frozen=True)
 class VersionInput:
-    version_label: str
+    version_label: str | None
     content: str
     original_filename: str | None = None
 
@@ -66,6 +66,11 @@ def _create_sections(
         )
 
 
+def _next_version_label(db: Session, document_id: str) -> str:
+    count = db.scalar(select(func.count()).where(DocumentVersion.document_id == document_id)) or 0
+    return f"v{count + 1}"
+
+
 def create_document(
     db: Session, title: str, version_input: VersionInput, max_sections_per_version: int = 250
 ) -> Document:
@@ -92,16 +97,27 @@ def create_version(
         raise NotFoundError("Document not found.")
     raw_text = version_input.content.strip()
     normalized = normalize_text(raw_text)
-    normalized_label = version_input.version_label.strip()
-    if not normalized_label:
-        raise ValueError("Version label cannot be blank.")
     if not normalized:
         raise ValueError("Document content cannot be empty.")
+
+    content_hash = _hash_text(raw_text)
+    existing = db.scalar(
+        select(DocumentVersion).where(
+            DocumentVersion.document_id == document_id,
+            DocumentVersion.content_hash == content_hash,
+        )
+    )
+    if existing:
+        return existing
+
+    normalized_label = version_input.version_label.strip() if version_input.version_label else ""
+    if not normalized_label:
+        normalized_label = _next_version_label(db, document_id)
     version = DocumentVersion(
         document_id=document_id,
         version_label=normalized_label,
         original_filename=version_input.original_filename,
-        content_hash=_hash_text(raw_text),
+        content_hash=content_hash,
         raw_text=raw_text,
         normalized_text=normalized,
         extracted_character_count=len(normalized),
