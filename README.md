@@ -17,10 +17,12 @@ This project intentionally differs from a RAG chatbot: its core input is **two d
 - FastAPI and Pydantic API design
 - PostgreSQL persistence and Alembic migrations
 - Heading-aware document parsing and one-to-one section alignment
+- Safe extraction for plain text, text-based PDF, DOCX, and XLSX workbooks
 - Deterministic diffing before LLM use for cost and hallucination control
 - Structured assessment with a no-key local fallback
 - Evidence/citation validation against stored source text
-- Docker, pytest, Ruff, GitHub Actions, a browser demo, and a reproducible benchmark
+- A browser review workspace with drag-and-drop uploads, filters, expandable evidence, review actions, and database-backed history
+- Docker, pytest, Ruff, GitHub Actions, and a reproducible benchmark
 
 ## Architecture
 
@@ -75,24 +77,33 @@ For local SQLite-only exploration, omit `DATABASE_URL`; Docker is the intended P
 
 ## Demo workflow
 
-1. Open the browser demo and use its prefilled vendor-terms versions.
-2. Click **Run comparison**.
-3. Inspect the ranked payment, privacy, and termination changes.
-4. Confirm that each shown before/after excerpt comes from stored source text.
-5. Mark an item reviewed with `PATCH /api/v1/changes/{change_id}/review`.
+1. Open the browser demo and upload a baseline and revised version of the same document.
+2. Use UTF-8 text/Markdown, text-based PDF, DOCX, or XLSX files. The default upload limit is 5 MiB per file and is configurable.
+3. Click **Run comparison**, then inspect the risk-ranked changes and their exact before/after evidence.
+4. Filter by severity or category, expand a change for full detail, and mark it reviewed or dismissed.
+5. Open **History** to reload earlier comparisons stored in the configured database.
 
 Sample source versions live in [`data/sample`](data/sample).
+
+## Browser review workspace
+
+The built-in interface is designed for focused contract review:
+
+- A two-column drag-and-drop upload flow derives the document title from the baseline filename.
+- Results include risk totals, severity/category filters, expandable evidence, and review controls.
+- Comparison history persists through the API instead of being limited to the active browser session.
+- The background uses an original, high-DPI procedural "Clause Graph" canvas. It adapts its render scale to the display, pauses in hidden tabs, and falls back to a static presentation for mobile, reduced-motion, high-contrast, and forced-colors settings.
 
 ## API summary
 
 | Endpoint | Purpose |
 |---|---|
-| `POST /api/v1/documents` | Create a document and its first text version. |
-| `POST /api/v1/documents/upload` | Upload `.txt`, `.md`, text-based `.pdf`, or `.docx`. |
-| `POST /api/v1/documents/{id}/versions` | Add an immutable document version. |
-| `POST /api/v1/documents/{id}/versions/upload` | Upload a second `.txt`, `.md`, text-based `.pdf`, or `.docx` version. |
+| `GET /api/v1/documents/{id}` | Fetch a document and its versions. |
+| `POST /api/v1/documents` | Create a document and upload its first version as multipart form data. |
+| `POST /api/v1/documents/{id}/versions` | Upload an additional immutable version. |
+| `GET /api/v1/comparisons` | List persisted comparisons for the history view. |
 | `POST /api/v1/comparisons` | Compare two versions from the same document. |
-| `GET /api/v1/comparisons/{id}` | Fetch/filter a comparison report. |
+| `GET /api/v1/comparisons/{id}` | Fetch a comparison report; optionally filter by severity, category, or review status. |
 | `PATCH /api/v1/changes/{id}/review` | Record a human review decision. |
 | `POST /api/v1/evaluations/run` | Run the synthetic, no-key benchmark. |
 | `GET /health` | Check application/database readiness. |
@@ -109,7 +120,7 @@ POST /api/v1/comparisons
 
 ## Safety and scope boundaries
 
-- Text-based PDF and DOCX only; scanned/image-only PDFs are rejected rather than silently compared as blank text.
+- Supported uploads are UTF-8 text/Markdown, text-based PDF, DOCX, and XLSX. Scanned/image-only PDFs are rejected rather than silently compared as blank text.
 - An ASGI-level raw request-body limit, upload/extracted-character/section/change limits, PDF page cap, and DOCX archive-expansion cap bound the MVP's input surface.
 - The core comparison is deterministic. The model receives only changed excerpts, not the complete documents.
 - Optional model-backed assessment is capped at `MAX_ASSESSMENT_CALLS` per comparison (10 by default); remaining items receive an explicitly labelled heuristic budget fallback. The evaluation endpoint always uses the local heuristic provider.
@@ -153,6 +164,7 @@ To use OpenAI instead, set `LLM_PROVIDER=openai`, `OPENAI_API_KEY`, and optional
 ```powershell
 python -m ruff check .
 python -m pytest -p no:cacheprovider
+node --check app/static/app.js
 python scripts/run_evaluation.py
 ```
 
@@ -164,7 +176,7 @@ The evaluation contains 16 synthetic document pairs and 84 labelled changes. It 
 app/
   api/                 # FastAPI schemas and routes
   services/            # Extraction, sectioning, diffing, assessment, evaluation
-  static/              # Small browser demo
+  static/              # Browser review workspace and adaptive visual background
   models.py            # SQLAlchemy entities
   main.py              # App factory and health endpoint
 alembic/               # Database migration entry point
