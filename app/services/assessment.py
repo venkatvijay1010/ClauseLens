@@ -116,7 +116,6 @@ def _build_summary(
     old_text: str | None, new_text: str | None,
     category: ChangeCategory,
 ) -> str:
-    action = change_type.value.capitalize()
     if change_type == ChangeType.ADDED:
         return f"New {category.value} section \u201c{heading}\u201d added to the document."
     if change_type == ChangeType.REMOVED:
@@ -187,7 +186,6 @@ class HeuristicAssessmentProvider:
                     severity = Severity.MEDIUM if base_severity == Severity.HIGH else Severity.LOW
                 else:
                     severity = base_severity
-        action = change_type.value
         summary = _build_summary(change_type, heading, old_text, new_text, category)
         payload = AssessmentPayload(
             category=category,
