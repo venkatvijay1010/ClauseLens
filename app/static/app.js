@@ -577,6 +577,20 @@
     }
   }
 
+  /* ===== Animated count-up for stat numbers ===== */
+  function animateCount(el, target, suffix = '') {
+    const duration = 600;
+    const start = performance.now();
+    const from = 0;
+    function tick(now) {
+      const t = Math.min((now - start) / duration, 1);
+      const ease = 1 - Math.pow(1 - t, 3);
+      el.textContent = Math.round(from + (target - from) * ease) + suffix;
+      if (t < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+
   /* ===== Display comparison results ===== */
   function displayComparison(comparison) {
     currentChanges = comparison.changes;
@@ -585,11 +599,11 @@
     const medium = currentChanges.filter(c => c.assessment?.severity === 'medium').length;
     const low    = currentChanges.filter(c => c.assessment?.severity === 'low').length;
 
-    $('#stat-total').textContent  = currentChanges.length;
-    $('#stat-high').textContent   = high;
-    $('#stat-medium').textContent = medium;
-    $('#stat-low').textContent    = low;
-    $('#stat-time').textContent   = comparison.duration_ms + 'ms';
+    animateCount($('#stat-total'), currentChanges.length);
+    animateCount($('#stat-high'), high);
+    animateCount($('#stat-medium'), medium);
+    animateCount($('#stat-low'), low);
+    animateCount($('#stat-time'), comparison.duration_ms, 'ms');
 
     buildCategoryPills();
 
@@ -602,6 +616,8 @@
     resultsSection.classList.remove('hidden');
     setStatus('');
     resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    initSpotlightCards();
   }
 
   /* ===== Load comparison from history ===== */
@@ -781,4 +797,32 @@
       }
     })
     .catch(() => {});
+
+  /* ===== Spotlight glow effect on stat cards ===== */
+  function initSpotlightCards() {
+    $$('.summary-stat').forEach(card => {
+      card.addEventListener('mousemove', (e) => {
+        const rect = card.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        card.style.setProperty('--spot-x', x + 'px');
+        card.style.setProperty('--spot-y', y + 'px');
+      });
+    });
+  }
+
+  /* ===== Staggered change card entry ===== */
+  const changeObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        changeObserver.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.1 });
+
+  const origMutationObserver = new MutationObserver(() => {
+    $$('.change-card:not(.visible)').forEach(card => changeObserver.observe(card));
+  });
+  if (changesRoot) origMutationObserver.observe(changesRoot, { childList: true });
 })();
